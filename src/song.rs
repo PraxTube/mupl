@@ -1,10 +1,13 @@
+use std::sync::mpsc::Receiver;
 use std::thread;
 
 use rodio::{OutputStream, Sink, Source};
 
+#[derive(Clone)]
 pub struct SongInfo {
     pub name: String,
     pub duration: u32,
+    pub file: String,
 }
 
 impl SongInfo {
@@ -16,29 +19,40 @@ impl SongInfo {
         SongInfo {
             name: file_stem,
             duration: source.total_duration().unwrap().as_secs_f32() as u32,
+            file: song_file.to_string(),
         }
     }
 }
 
-pub fn stream_song(song_file: String) -> thread::JoinHandle<()> {
+fn add_song_to_sink(song_info: SongInfo, sink: &Sink) {
+    sink.stop();
+    let file = std::fs::File::open(song_info.file).unwrap();
+    let source = rodio::Decoder::new(file).unwrap();
+
+    sink.append(source);
+}
+
+fn play_song(song_file: String, rx: Receiver<SongInfo>) {
+    let file = std::fs::File::open(song_file).unwrap();
+    let source = rodio::Decoder::new(file).unwrap();
+
+    let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+    let sink = Sink::try_new(&stream_handle).unwrap();
+
+    sink.append(source);
+
+    loop {
+        match rx.recv() {
+            Ok(song_info) => add_song_to_sink(song_info, &sink),
+            Err(_) => break,
+        };
+    }
+}
+
+pub fn stream_song(song_file: String, rx: Receiver<SongInfo>) -> thread::JoinHandle<()> {
     let streaming_thread = thread::Builder::new()
         .name("song-streaming".into())
-        .spawn(move || {
-            let file = std::fs::File::open(song_file).unwrap();
-            let source = rodio::Decoder::new(file).unwrap();
-
-            let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-            let sink = Sink::try_new(&stream_handle).unwrap();
-
-            /*
-            println!(
-                "dur: {} minutes",
-                source.total_duration().unwrap().as_secs_f32() / 60.0
-            );
-            */
-            sink.append(source);
-            sink.sleep_until_end();
-        })
+        .spawn(move || play_song(song_file, rx))
         .unwrap();
     streaming_thread
 }

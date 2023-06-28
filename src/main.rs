@@ -2,6 +2,7 @@ mod song;
 mod terminal;
 
 use std::error::Error;
+use std::sync::mpsc;
 
 use clap::Parser;
 
@@ -28,9 +29,11 @@ fn input_file() -> String {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    let (tx, rx) = mpsc::channel::<SongInfo>();
+
     let file = input_file();
     let song_info = SongInfo::new(&file);
-    let _streaming_thread = stream_song(file);
+    let _streaming_thread = stream_song(file, rx);
 
-    terminal::setup(song_info)
+    terminal::setup(song_info, tx)
 }

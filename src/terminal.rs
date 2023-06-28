@@ -6,6 +6,7 @@ use crossterm::{
 use std::{
     error::Error,
     io,
+    sync::mpsc::Sender,
     time::{Duration, Instant},
 };
 use tui::{
@@ -65,24 +66,28 @@ impl<T> StatefulList<T> {
     }
 }
 
-/// This struct holds the current state of the app. In particular, it has the `items` field which is a wrapper
-/// around `ListState`. Keeping track of the items state let us render the associated widget with its state
-/// and have access to features such as natural scrolling.
-///
-pub struct App<'a> {
-    items: StatefulList<(&'a str, usize)>,
+pub struct App {
+    items: StatefulList<(SongInfo, usize)>,
 
     duration: u32,
     progress: u32,
+
+    sender: Sender<SongInfo>,
 }
 
-impl<'a> App<'a> {
-    pub fn new(song_info: SongInfo) -> App<'a> {
+impl App {
+    pub fn new(song_info: SongInfo, tx: Sender<SongInfo>) -> App {
         App {
-            items: StatefulList::with_items(vec![("Item0", 1), ("Item1", 2)]),
+            items: StatefulList::with_items(vec![
+                (SongInfo::new("tmp/wannabe.wav"), 0),
+                (SongInfo::new("GangGangKawaii.wav"), 1),
+                (SongInfo::new("dummy.wav"), 2),
+            ]),
 
             duration: song_info.duration,
             progress: 0,
+
+            sender: tx,
         }
     }
 
@@ -101,12 +106,22 @@ impl<'a> App<'a> {
         self.duration
     }
 
-    pub fn set_duration(&mut self, new_duration: u32) {
-        self.duration = new_duration;
+    fn change_playing_song(&mut self) {
+        if self.items.state.selected() == None {
+            return ();
+        }
+
+        let song_info = self.items.items[self.items.state.selected().unwrap()]
+            .0
+            .clone();
+
+        self.progress = 0;
+        self.duration = song_info.duration;
+        self.sender.send(song_info);
     }
 }
 
-pub fn setup(song_info: SongInfo) -> Result<(), Box<dyn Error>> {
+pub fn setup(song_info: SongInfo, tx: Sender<SongInfo>) -> Result<(), Box<dyn Error>> {
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
@@ -114,7 +129,7 @@ pub fn setup(song_info: SongInfo) -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     let tick_rate = Duration::from_secs(1);
-    let app = App::new(song_info);
+    let app = App::new(song_info, tx);
     let res = run_app(&mut terminal, app, tick_rate);
 
     disable_raw_mode()?;
@@ -152,6 +167,7 @@ fn run_app<B: Backend>(
                     KeyCode::Char('l') => app.items.next(),
                     KeyCode::Char('j') => app.items.next(),
                     KeyCode::Char('k') => app.items.previous(),
+                    KeyCode::Enter => app.change_playing_song(),
                     _ => {}
                 }
             }
@@ -176,14 +192,8 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .items
         .iter()
         .map(|i| {
-            let mut lines = vec![Spans::from(i.0)];
-            for _ in 0..i.1 {
-                lines.push(Spans::from(Span::styled(
-                    "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
-                    Style::default().add_modifier(Modifier::ITALIC),
-                )));
-            }
-            ListItem::new(lines).style(Style::default())
+            let song_body = Spans::from(Span::styled(&i.0.file, Style::default()));
+            ListItem::new(song_body).style(Style::default())
         })
         .collect();
 
@@ -191,7 +201,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let items = List::new(items)
         .block(Block::default().borders(Borders::ALL).title("Song List"))
         .highlight_style(Style::default().bg(Color::Red).add_modifier(Modifier::BOLD))
-        .highlight_symbol(">> ");
+        .highlight_symbol("> ");
 
     // We can now render the item list
     f.render_stateful_widget(items, chunks[0], &mut app.items.state);
