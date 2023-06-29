@@ -11,10 +11,10 @@ use std::{
 };
 use tui::{
     backend::{Backend, CrosstermBackend},
-    layout::{Constraint, Direction, Layout},
+    layout::{Alignment, Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
     text::{Span, Spans},
-    widgets::{Block, Borders, Gauge, LineGauge, List, ListItem, ListState},
+    widgets::{Block, Borders, Gauge, LineGauge, List, ListItem, ListState, Paragraph},
     Frame, Terminal,
 };
 
@@ -69,14 +69,14 @@ impl<T> StatefulList<T> {
 pub struct App {
     items: StatefulList<(SongInfo, usize)>,
 
-    duration: u32,
+    song_info: SongInfo,
     progress: u32,
 
     sender: Sender<SongInfo>,
 }
 
 impl App {
-    pub fn new(song_info: SongInfo, tx: Sender<SongInfo>) -> App {
+    pub fn new(_song_info: SongInfo, tx: Sender<SongInfo>) -> App {
         App {
             items: StatefulList::with_items(vec![
                 (SongInfo::new("tmp/wannabe.wav"), 0),
@@ -84,7 +84,7 @@ impl App {
                 (SongInfo::new("dummy.wav"), 2),
             ]),
 
-            duration: song_info.duration,
+            song_info: _song_info,
             progress: 0,
 
             sender: tx,
@@ -97,13 +97,9 @@ impl App {
 
     pub fn on_tick(&mut self) {
         self.progress += 1;
-        if self.progress > self.duration {
+        if self.progress > self.song_info.duration {
             self.progress = 0;
         }
-    }
-
-    pub fn get_duration(&self) -> u32 {
-        self.duration
     }
 
     fn change_playing_song(&mut self) {
@@ -111,13 +107,13 @@ impl App {
             return ();
         }
 
-        let song_info = self.items.items[self.items.state.selected().unwrap()]
+        let new_song_info = self.items.items[self.items.state.selected().unwrap()]
             .0
             .clone();
 
         self.progress = 0;
-        self.duration = song_info.duration;
-        self.sender.send(song_info);
+        self.song_info = new_song_info.clone();
+        self.sender.send(new_song_info);
     }
 }
 
@@ -164,7 +160,7 @@ fn run_app<B: Backend>(
                 match key.code {
                     KeyCode::Char('q') => return Ok(()),
                     KeyCode::Char('h') => app.items.unselect(),
-                    KeyCode::Char('l') => app.items.next(),
+                    KeyCode::Char('l') => app.items.unselect(),
                     KeyCode::Char('j') => app.items.next(),
                     KeyCode::Char('k') => app.items.previous(),
                     KeyCode::Enter => app.change_playing_song(),
@@ -214,6 +210,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .margin(1)
         .constraints(
             [
+                Constraint::Length(4),
                 Constraint::Length(3),
                 Constraint::Length(3),
                 Constraint::Min(1),
@@ -222,24 +219,42 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         )
         .split(chunks[1]);
 
+    let create_block = |title| {
+        Block::default()
+            .borders(Borders::ALL)
+            .style(Style::default())
+            .title(Span::styled(
+                title,
+                Style::default().add_modifier(Modifier::BOLD),
+            ))
+    };
+
+    let paragraph_info = Paragraph::new(format!(
+        "Name: {}\nFile: {}",
+        app.song_info.name, app.song_info.file
+    ))
+    .block(create_block("Info"))
+    .alignment(Alignment::Left);
+    f.render_widget(paragraph_info, playing_song_chunks[0]);
+
     let label = format!(
         "{}/{} - ({:.0}%)",
         format_time(app.progress),
-        format_time(app.duration),
-        app.progress as f64 / app.duration as f64 * 100.0
+        format_time(app.song_info.duration),
+        app.progress as f64 / app.song_info.duration as f64 * 100.0
     );
-    let ratio: f64 = (app.get_progress() as f64 / app.get_duration() as f64)
+    let ratio: f64 = (app.get_progress() as f64 / app.song_info.duration as f64)
         .max(0.0)
         .min(1.0);
     let gauge = Gauge::default()
-        .block(Block::default().title("Gauge1").borders(Borders::ALL))
+        .block(Block::default().borders(Borders::ALL))
         .gauge_style(Style::default().fg(Color::Yellow))
         .ratio(ratio)
         .label(label.clone());
-    f.render_widget(gauge, playing_song_chunks[0]);
+    f.render_widget(gauge, playing_song_chunks[1]);
 
     let gauge = LineGauge::default()
-        .block(Block::default().title("Gauge4").borders(Borders::ALL))
+        .block(Block::default().borders(Borders::ALL))
         .gauge_style(
             Style::default()
                 .fg(Color::Yellow)
@@ -248,7 +263,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         )
         .ratio(ratio)
         .label(label);
-    f.render_widget(gauge, playing_song_chunks[1]);
+    f.render_widget(gauge, playing_song_chunks[2]);
 }
 
 fn format_time(seconds: u32) -> String {
