@@ -85,12 +85,12 @@ impl App {
         _song_data: serde_json::Value,
         _tx: Sender<SongInfo>,
     ) -> App {
+        let mut _items: Vec<SongInfo> = Vec::new();
+        for song in &_songs {
+            _items.push(SongInfo::new(song));
+        }
         App {
-            items: StatefulList::with_items(vec![
-                SongInfo::new("tmp/wannabe.wav"),
-                SongInfo::new("GangGangKawaii.wav"),
-                SongInfo::new("dummy.wav"),
-            ]),
+            items: StatefulList::with_items(_items),
 
             progress: 0,
             song_info: None,
@@ -197,7 +197,7 @@ fn render_song_list<B: Backend>(f: &mut Frame<B>, app: &mut App, chunk: Rect) {
         .items
         .iter()
         .map(|i| {
-            let song_body = Spans::from(Span::styled(&i.file, Style::default()));
+            let song_body = Spans::from(Span::styled(&i.name, Style::default()));
             ListItem::new(song_body).style(Style::default())
         })
         .collect();
@@ -229,7 +229,7 @@ fn render_play_song<B: Backend>(f: &mut Frame<B>, app: &mut App, chunk: Rect, so
 
     let paragraph_info = Paragraph::new(format!(
         "\nName: {}\nFile: {}",
-        song_info.name, song_info.file
+        app.song_data[&song_info.name]["name"], app.song_data[&song_info.name]["artist"][0]
     ))
     .alignment(Alignment::Left);
     f.render_widget(paragraph_info, playing_song_chunks[0]);

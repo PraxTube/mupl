@@ -11,15 +11,14 @@ pub struct SongInfo {
 }
 
 impl SongInfo {
-    pub fn new(song_file: &str) -> SongInfo {
+    pub fn new(song_file: &std::path::PathBuf) -> SongInfo {
         let file = std::fs::File::open(song_file).unwrap();
         let source = rodio::Decoder::new(file).unwrap();
-        let path = std::path::Path::new(song_file);
-        let file_stem = path.file_stem().unwrap().to_str().unwrap().to_string();
+        let file_stem = song_file.file_stem().unwrap().to_str().unwrap().to_string();
         SongInfo {
             name: file_stem,
             duration: source.total_duration().unwrap().as_secs_f32() as u32,
-            file: song_file.to_string(),
+            file: song_file.to_str().unwrap().to_string(),
         }
     }
 }
