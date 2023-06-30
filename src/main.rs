@@ -20,25 +20,10 @@ struct Args {
     count: u8,
 }
 
-fn input_file() -> String {
-    let args = Args::parse();
-
-    if args.file != "" {
-        return args.file.clone();
-    } else {
-        return "dummy.wav".to_string();
-    }
-}
-
 fn main() -> Result<(), Box<dyn Error>> {
     let (tx, rx) = mpsc::channel::<SongInfo>();
-    let songs = load::load_music_files("/home/rancic/recordings/");
     data::check_default_files()?;
-    let song_data = data::song_data()?;
 
-    let file = input_file();
-    let song_info = SongInfo::new(&file);
-    let _streaming_thread = stream_song(file, rx);
-
-    terminal::setup(song_info, tx)
+    let _streaming_thread = stream_song(rx);
+    terminal::setup(tx)
 }

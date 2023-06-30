@@ -1,5 +1,3 @@
-use std::fs;
-use std::path::Path;
 use walkdir::WalkDir;
 
 pub fn load_music_files(dir_path: &str) -> Vec<std::path::PathBuf> {

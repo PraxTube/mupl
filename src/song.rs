@@ -32,14 +32,9 @@ fn add_song_to_sink(song_info: SongInfo, sink: &Sink) {
     sink.append(source);
 }
 
-fn play_song(song_file: String, rx: Receiver<SongInfo>) {
-    let file = std::fs::File::open(song_file).unwrap();
-    let source = rodio::Decoder::new(file).unwrap();
-
+fn play_song(rx: Receiver<SongInfo>) {
     let (_stream, stream_handle) = OutputStream::try_default().unwrap();
     let sink = Sink::try_new(&stream_handle).unwrap();
-
-    sink.append(source);
 
     loop {
         match rx.recv() {
@@ -49,10 +44,10 @@ fn play_song(song_file: String, rx: Receiver<SongInfo>) {
     }
 }
 
-pub fn stream_song(song_file: String, rx: Receiver<SongInfo>) -> thread::JoinHandle<()> {
+pub fn stream_song(rx: Receiver<SongInfo>) -> thread::JoinHandle<()> {
     let streaming_thread = thread::Builder::new()
         .name("song-streaming".into())
-        .spawn(move || play_song(song_file, rx))
+        .spawn(move || play_song(rx))
         .unwrap();
     streaming_thread
 }

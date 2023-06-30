@@ -11,13 +11,15 @@ use std::{
 };
 use tui::{
     backend::{Backend, CrosstermBackend},
-    layout::{Alignment, Constraint, Direction, Layout},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans},
     widgets::{Block, Borders, Gauge, LineGauge, List, ListItem, ListState, Paragraph},
     Frame, Terminal,
 };
 
+use crate::data;
+use crate::load;
 use crate::song::SongInfo;
 
 struct StatefulList<T> {
@@ -69,14 +71,20 @@ impl<T> StatefulList<T> {
 pub struct App {
     items: StatefulList<SongInfo>,
 
-    song_info: SongInfo,
     progress: u32,
+    song_info: Option<SongInfo>,
+    songs: Vec<std::path::PathBuf>,
+    song_data: serde_json::Value,
 
     tx: Sender<SongInfo>,
 }
 
 impl App {
-    pub fn new(_song_info: SongInfo, _tx: Sender<SongInfo>) -> App {
+    pub fn new(
+        _songs: Vec<std::path::PathBuf>,
+        _song_data: serde_json::Value,
+        _tx: Sender<SongInfo>,
+    ) -> App {
         App {
             items: StatefulList::with_items(vec![
                 SongInfo::new("tmp/wannabe.wav"),
@@ -84,8 +92,10 @@ impl App {
                 SongInfo::new("dummy.wav"),
             ]),
 
-            song_info: _song_info,
             progress: 0,
+            song_info: None,
+            songs: _songs,
+            song_data: _song_data,
 
             tx: _tx,
         }
@@ -96,9 +106,14 @@ impl App {
     }
 
     pub fn on_tick(&mut self) {
-        self.progress += 1;
-        if self.progress > self.song_info.duration {
-            self.progress = 0;
+        match &self.song_info {
+            Some(info) => {
+                self.progress += 1;
+                if self.progress > info.duration {
+                    self.progress = 0;
+                }
+            }
+            None => {}
         }
     }
 
@@ -110,12 +125,15 @@ impl App {
         let new_song_info = self.items.items[self.items.state.selected().unwrap()].clone();
 
         self.progress = 0;
-        self.song_info = new_song_info.clone();
+        self.song_info = Some(new_song_info.clone());
         self.tx.send(new_song_info);
     }
 }
 
-pub fn setup(song_info: SongInfo, tx: Sender<SongInfo>) -> Result<(), Box<dyn Error>> {
+pub fn setup(tx: Sender<SongInfo>) -> Result<(), Box<dyn Error>> {
+    let songs = load::load_music_files("/home/rancic/music/");
+    let song_data = data::song_data()?;
+
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
@@ -123,7 +141,7 @@ pub fn setup(song_info: SongInfo, tx: Sender<SongInfo>) -> Result<(), Box<dyn Er
     let mut terminal = Terminal::new(backend)?;
 
     let tick_rate = Duration::from_secs(1);
-    let app = App::new(song_info, tx);
+    let app = App::new(songs, song_data, tx);
     let res = run_app(&mut terminal, app, tick_rate);
 
     disable_raw_mode()?;
@@ -173,14 +191,7 @@ fn run_app<B: Backend>(
     }
 }
 
-fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
-    // Create two chunks with equal horizontal screen space
-    let chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
-        .split(f.size());
-
-    // Iterate through all elements in the `items` app and append some debug text to it.
+fn render_song_list<B: Backend>(f: &mut Frame<B>, app: &mut App, chunk: Rect) {
     let items: Vec<ListItem> = app
         .items
         .items
@@ -198,11 +209,10 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .highlight_symbol("> ");
 
     // We can now render the item list
-    f.render_stateful_widget(items, chunks[0], &mut app.items.state);
+    f.render_stateful_widget(items, chunk, &mut app.items.state);
+}
 
-    let block = Block::default().title("Playing Song").borders(Borders::ALL);
-    f.render_widget(block, chunks[1]);
-
+fn render_play_song<B: Backend>(f: &mut Frame<B>, app: &mut App, chunk: Rect, song_info: SongInfo) {
     let playing_song_chunks = Layout::default()
         .direction(Direction::Vertical)
         .margin(1)
@@ -215,11 +225,11 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             ]
             .as_ref(),
         )
-        .split(chunks[1]);
+        .split(chunk);
 
     let paragraph_info = Paragraph::new(format!(
         "\nName: {}\nFile: {}",
-        app.song_info.name, app.song_info.file
+        song_info.name, song_info.file
     ))
     .alignment(Alignment::Left);
     f.render_widget(paragraph_info, playing_song_chunks[0]);
@@ -227,10 +237,10 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let label = format!(
         "{}/{} - ({:.0}%)",
         format_time(app.progress),
-        format_time(app.song_info.duration),
-        app.progress as f64 / app.song_info.duration as f64 * 100.0
+        format_time(song_info.duration),
+        app.progress as f64 / song_info.duration as f64 * 100.0
     );
-    let ratio: f64 = (app.get_progress() as f64 / app.song_info.duration as f64)
+    let ratio: f64 = (app.get_progress() as f64 / song_info.duration as f64)
         .max(0.0)
         .min(1.0);
     let gauge = Gauge::default()
@@ -251,6 +261,23 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .ratio(ratio)
         .label(label);
     f.render_widget(gauge, playing_song_chunks[2]);
+}
+
+fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+    let chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
+        .split(f.size());
+
+    render_song_list(f, app, chunks[0]);
+
+    let block = Block::default().title("Playing Song").borders(Borders::ALL);
+    f.render_widget(block, chunks[1]);
+
+    match &app.song_info {
+        Some(info) => render_play_song(f, app, chunks[1], info.clone()),
+        None => {}
+    }
 }
 
 fn format_time(seconds: u32) -> String {
