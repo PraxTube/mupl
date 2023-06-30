@@ -72,11 +72,11 @@ pub struct App {
     song_info: SongInfo,
     progress: u32,
 
-    sender: Sender<SongInfo>,
+    tx: Sender<SongInfo>,
 }
 
 impl App {
-    pub fn new(_song_info: SongInfo, tx: Sender<SongInfo>) -> App {
+    pub fn new(_song_info: SongInfo, _tx: Sender<SongInfo>) -> App {
         App {
             items: StatefulList::with_items(vec![
                 (SongInfo::new("tmp/wannabe.wav"), 0),
@@ -87,7 +87,7 @@ impl App {
             song_info: _song_info,
             progress: 0,
 
-            sender: tx,
+            tx: _tx,
         }
     }
 
@@ -113,7 +113,7 @@ impl App {
 
         self.progress = 0;
         self.song_info = new_song_info.clone();
-        self.sender.send(new_song_info);
+        self.tx.send(new_song_info);
     }
 }
 
@@ -219,21 +219,10 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         )
         .split(chunks[1]);
 
-    let create_block = |title| {
-        Block::default()
-            .borders(Borders::ALL)
-            .style(Style::default())
-            .title(Span::styled(
-                title,
-                Style::default().add_modifier(Modifier::BOLD),
-            ))
-    };
-
     let paragraph_info = Paragraph::new(format!(
-        "Name: {}\nFile: {}",
+        "\nName: {}\nFile: {}",
         app.song_info.name, app.song_info.file
     ))
-    .block(create_block("Info"))
     .alignment(Alignment::Left);
     f.render_widget(paragraph_info, playing_song_chunks[0]);
 

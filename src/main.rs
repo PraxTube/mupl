@@ -1,3 +1,5 @@
+mod data;
+mod load;
 mod song;
 mod terminal;
 
@@ -30,6 +32,9 @@ fn input_file() -> String {
 
 fn main() -> Result<(), Box<dyn Error>> {
     let (tx, rx) = mpsc::channel::<SongInfo>();
+    let songs = load::load_music_files("/home/rancic/recordings/");
+    data::check_default_files()?;
+    let song_data = data::song_data()?;
 
     let file = input_file();
     let song_info = SongInfo::new(&file);
