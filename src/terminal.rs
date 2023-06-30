@@ -67,7 +67,7 @@ impl<T> StatefulList<T> {
 }
 
 pub struct App {
-    items: StatefulList<(SongInfo, usize)>,
+    items: StatefulList<SongInfo>,
 
     song_info: SongInfo,
     progress: u32,
@@ -79,9 +79,9 @@ impl App {
     pub fn new(_song_info: SongInfo, _tx: Sender<SongInfo>) -> App {
         App {
             items: StatefulList::with_items(vec![
-                (SongInfo::new("tmp/wannabe.wav"), 0),
-                (SongInfo::new("GangGangKawaii.wav"), 1),
-                (SongInfo::new("dummy.wav"), 2),
+                SongInfo::new("tmp/wannabe.wav"),
+                SongInfo::new("GangGangKawaii.wav"),
+                SongInfo::new("dummy.wav"),
             ]),
 
             song_info: _song_info,
@@ -107,9 +107,7 @@ impl App {
             return ();
         }
 
-        let new_song_info = self.items.items[self.items.state.selected().unwrap()]
-            .0
-            .clone();
+        let new_song_info = self.items.items[self.items.state.selected().unwrap()].clone();
 
         self.progress = 0;
         self.song_info = new_song_info.clone();
@@ -188,7 +186,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .items
         .iter()
         .map(|i| {
-            let song_body = Spans::from(Span::styled(&i.0.file, Style::default()));
+            let song_body = Spans::from(Span::styled(&i.file, Style::default()));
             ListItem::new(song_body).style(Style::default())
         })
         .collect();
