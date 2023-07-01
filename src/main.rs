@@ -1,5 +1,6 @@
 mod data;
 mod load;
+mod playlist;
 mod song;
 mod terminal;
 
