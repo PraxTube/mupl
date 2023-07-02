@@ -604,6 +604,7 @@ dependencies = [
  "rodio",
  "serde_json",
  "tui",
+ "unicode-width",
  "walkdir",
 ]
 

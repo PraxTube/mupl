@@ -14,14 +14,14 @@ use tui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans},
-    widgets::{Block, Borders, Clear, Gauge, LineGauge, List, ListItem, ListState, Paragraph},
+    widgets::{Block, Borders, Gauge, LineGauge, List, ListItem, ListState, Paragraph},
     Frame, Terminal,
 };
 
 use crate::data;
 use crate::load;
-use crate::playlist::add_song_to_playlist;
 use crate::song::SongInfo;
+use crate::ui::playlist;
 
 struct StatefulList<T> {
     state: ListState,
@@ -135,7 +135,9 @@ impl App {
     }
 
     fn add_to_playlist(&mut self) {
-        self.playlist_popup = true;
+        if self.items.state.selected() != None {
+            self.playlist_popup = true;
+        }
     }
 }
 
@@ -273,42 +275,6 @@ fn render_play_song<B: Backend>(f: &mut Frame<B>, app: &mut App, chunk: Rect, so
     f.render_widget(gauge, playing_song_chunks[2]);
 }
 
-/// helper function to create a centered rect using up certain percentage of the available rect `r`
-fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
-    let popup_layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints(
-            [
-                Constraint::Percentage((100 - percent_y) / 2),
-                Constraint::Percentage(percent_y),
-                Constraint::Percentage((100 - percent_y) / 2),
-            ]
-            .as_ref(),
-        )
-        .split(r);
-
-    Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints(
-            [
-                Constraint::Percentage((100 - percent_x) / 2),
-                Constraint::Percentage(percent_x),
-                Constraint::Percentage((100 - percent_x) / 2),
-            ]
-            .as_ref(),
-        )
-        .split(popup_layout[1])[1]
-}
-
-fn render_song_playlist_popup<B: Backend>(f: &mut Frame<B>, app: &mut App) {
-    let block = Block::default()
-        .title("Select Playlist")
-        .borders(Borders::ALL);
-    let area = centered_rect(50, 30, f.size());
-    f.render_widget(Clear, area); //this clears out the background
-    f.render_widget(block, area);
-}
-
 fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
@@ -326,7 +292,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     }
 
     if app.playlist_popup {
-        render_song_playlist_popup(f, app);
+        playlist::render_popup(f, app);
     }
 }
 

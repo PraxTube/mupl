@@ -2,7 +2,7 @@ mod data;
 mod load;
 mod playlist;
 mod song;
-mod terminal;
+mod ui;
 
 use std::error::Error;
 use std::sync::mpsc;
@@ -10,6 +10,7 @@ use std::sync::mpsc;
 use clap::Parser;
 
 use song::{stream_song, SongInfo};
+use ui::terminal;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
