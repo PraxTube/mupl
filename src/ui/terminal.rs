@@ -23,6 +23,11 @@ use crate::load;
 use crate::song::SongInfo;
 use crate::ui::playlist;
 
+enum Controller {
+    Main,
+    Playlist,
+}
+
 struct StatefulList<T> {
     state: ListState,
     items: Vec<T>,
@@ -79,7 +84,10 @@ pub struct App {
 
     playlist_popup: bool,
 
+    controller: Controller,
     tx: Sender<SongInfo>,
+
+    quit: bool,
 }
 
 impl App {
@@ -102,7 +110,10 @@ impl App {
 
             playlist_popup: false,
 
+            controller: Controller::Main,
             tx: _tx,
+
+            quit: false,
         }
     }
 
@@ -177,30 +188,45 @@ fn run_app<B: Backend>(
 ) -> io::Result<()> {
     let mut last_tick = Instant::now();
     loop {
-        terminal.draw(|f| ui(f, &mut app))?;
+        if app.quit {
+            return Ok(());
+        }
 
-        let timeout = tick_rate
-            .checked_sub(last_tick.elapsed())
-            .unwrap_or_else(|| Duration::from_secs(0));
-        if crossterm::event::poll(timeout)? {
-            if let Event::Key(key) = event::read()? {
-                match key.code {
-                    KeyCode::Char('q') => return Ok(()),
-                    KeyCode::Char('h') => app.items.unselect(),
-                    KeyCode::Char('l') => app.items.unselect(),
-                    KeyCode::Char('j') => app.items.next(),
-                    KeyCode::Char('k') => app.items.previous(),
-                    KeyCode::Char('p') => app.add_to_playlist(),
-                    KeyCode::Enter => app.change_playing_song(),
-                    _ => {}
-                }
+        terminal.draw(|f| ui(f, &mut app))?;
+        match app.controller {
+            Controller::Main => main_controller::<B>(&mut app, tick_rate, &mut last_tick),
+            Controller::Playlist => Ok(()),
+        }?;
+    }
+}
+
+fn main_controller<B: Backend>(
+    app: &mut App,
+    tick_rate: Duration,
+    last_tick: &mut Instant,
+) -> io::Result<()> {
+    let timeout = tick_rate
+        .checked_sub(last_tick.elapsed())
+        .unwrap_or_else(|| Duration::from_secs(0));
+    if crossterm::event::poll(timeout)? {
+        if let Event::Key(key) = event::read()? {
+            match key.code {
+                KeyCode::Char('q') => app.quit = true,
+                KeyCode::Char('h') => app.items.unselect(),
+                KeyCode::Char('l') => app.items.unselect(),
+                KeyCode::Char('j') => app.items.next(),
+                KeyCode::Char('k') => app.items.previous(),
+                KeyCode::Char('p') => app.add_to_playlist(),
+                KeyCode::Enter => app.change_playing_song(),
+                _ => {}
             }
         }
-        if last_tick.elapsed() >= tick_rate {
-            app.on_tick();
-            last_tick = Instant::now();
-        }
     }
+    if last_tick.elapsed() >= tick_rate {
+        app.on_tick();
+        *last_tick = Instant::now();
+    }
+    Ok(())
 }
 
 fn render_song_list<B: Backend>(f: &mut Frame<B>, app: &mut App, chunk: Rect) {
