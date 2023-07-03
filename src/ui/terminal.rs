@@ -75,6 +75,7 @@ impl<T> StatefulList<T> {
 }
 
 pub struct App {
+    pub finder_data: crate::ui::fuzzy_finder::Data,
     items: StatefulList<SongInfo>,
 
     progress: u32,
@@ -101,6 +102,7 @@ impl App {
             _items.push(SongInfo::new(song));
         }
         App {
+            finder_data: crate::ui::fuzzy_finder::Data::new(),
             items: StatefulList::with_items(_items),
 
             progress: 0,
@@ -148,7 +150,13 @@ impl App {
     fn add_to_playlist(&mut self) {
         if self.items.state.selected() != None {
             self.playlist_popup = true;
+            self.controller = Controller::Playlist;
         }
+    }
+
+    pub fn main_controller(&mut self) {
+        self.playlist_popup = false;
+        self.controller = Controller::Main;
     }
 }
 
@@ -195,7 +203,7 @@ fn run_app<B: Backend>(
         terminal.draw(|f| ui(f, &mut app))?;
         match app.controller {
             Controller::Main => main_controller::<B>(&mut app, tick_rate, &mut last_tick),
-            Controller::Playlist => Ok(()),
+            Controller::Playlist => playlist::controller::<B>(&mut app, tick_rate, &mut last_tick),
         }?;
     }
 }

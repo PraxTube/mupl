@@ -1,17 +1,20 @@
-use tui::{
-    backend::Backend,
-    widgets::{Block, Borders, Clear},
-    Frame,
+use std::{
+    io,
+    time::{Duration, Instant},
 };
+use tui::{backend::Backend, Frame};
 
+use crate::ui::fuzzy_finder;
 use crate::ui::terminal::App;
-use crate::ui::utils;
 
 pub fn render_popup<B: Backend>(f: &mut Frame<B>, app: &mut App) {
-    let block = Block::default()
-        .title("Select Playlist")
-        .borders(Borders::ALL);
-    let area = utils::centered_rect(50, 30, f.size());
-    f.render_widget(Clear, area); //this clears out the background
-    f.render_widget(block, area);
+    fuzzy_finder::render_popup(f, app, "Song PlayList");
+}
+
+pub fn controller<B: Backend>(
+    app: &mut App,
+    tick_rate: Duration,
+    last_tick: &mut Instant,
+) -> io::Result<()> {
+    fuzzy_finder::controller::<B>(app, tick_rate, last_tick)
 }
