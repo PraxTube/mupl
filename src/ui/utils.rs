@@ -1,6 +1,54 @@
-use tui::layout::{Constraint, Direction, Layout, Rect};
+use tui::{
+    layout::{Constraint, Direction, Layout, Rect},
+    widgets::ListState,
+};
 
-/// helper function to create a centered rect using up certain percentage of the available rect `r`
+pub struct StatefulList<T> {
+    pub state: ListState,
+    pub items: Vec<T>,
+}
+
+impl<T> StatefulList<T> {
+    pub fn with_items(items: Vec<T>) -> StatefulList<T> {
+        StatefulList {
+            state: ListState::default(),
+            items,
+        }
+    }
+
+    pub fn next(&mut self) {
+        let i = match self.state.selected() {
+            Some(i) => {
+                if i >= self.items.len() - 1 {
+                    0
+                } else {
+                    i + 1
+                }
+            }
+            None => 0,
+        };
+        self.state.select(Some(i));
+    }
+
+    pub fn previous(&mut self) {
+        let i = match self.state.selected() {
+            Some(i) => {
+                if i == 0 {
+                    self.items.len() - 1
+                } else {
+                    i - 1
+                }
+            }
+            None => 0,
+        };
+        self.state.select(Some(i));
+    }
+
+    pub fn unselect(&mut self) {
+        self.state.select(None);
+    }
+}
+
 pub fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
     let popup_layout = Layout::default()
         .direction(Direction::Vertical)
