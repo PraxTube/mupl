@@ -113,6 +113,7 @@ impl App {
     pub fn main_controller(&mut self) {
         self.playlist_popup = false;
         self.controller = Controller::Main;
+        println!("{}", self.finder_data.output);
     }
 }
 

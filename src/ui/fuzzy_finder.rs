@@ -30,6 +30,7 @@ use crate::ui::utils;
 
 pub struct Data {
     input: String,
+    pub output: String,
     possible_matches: Vec<String>,
     stateful_matches: utils::StatefulList<String>,
 }
@@ -38,6 +39,7 @@ impl Data {
     pub fn new() -> Data {
         Data {
             input: String::new(),
+            output: String::new(),
             possible_matches: Vec::new(),
             stateful_matches: utils::StatefulList::with_items(Vec::new()),
         }
@@ -54,6 +56,7 @@ impl Data {
     }
 
     pub fn reset(&mut self, _possible_matches: Vec<String>) {
+        self.input = String::new();
         self.possible_matches = _possible_matches.clone();
         self.stateful_matches = utils::StatefulList::with_items(_possible_matches);
     }
@@ -82,6 +85,17 @@ impl Data {
         });
 
         self.stateful_matches = utils::StatefulList::with_items(sorted_and_filtered);
+        self.stateful_matches.next();
+    }
+
+    fn check_finding(&mut self) -> bool {
+        if self.stateful_matches.items.len() == 0 {
+            return false;
+        }
+
+        self.output =
+            self.stateful_matches.items[self.stateful_matches.state.selected().unwrap()].clone();
+        true
     }
 }
 
@@ -159,7 +173,11 @@ pub fn controller<B: Backend>(
                 KeyCode::BackTab => {
                     app.finder_data.stateful_matches.previous();
                 }
-                KeyCode::Enter => {}
+                KeyCode::Enter => {
+                    if app.finder_data.check_finding() {
+                        app.main_controller();
+                    }
+                }
                 KeyCode::Esc => app.main_controller(),
                 _ => {}
             }
