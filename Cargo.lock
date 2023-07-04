@@ -603,6 +603,7 @@ dependencies = [
  "crossterm 0.26.1",
  "rodio",
  "serde_json",
+ "strsim",
  "tui",
  "unicode-width",
  "walkdir",
