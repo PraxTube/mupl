@@ -150,8 +150,13 @@ impl App {
     fn add_to_playlist(&mut self) {
         if self.items.state.selected() != None {
             self.playlist_popup = true;
+            self.reset_finder(playlist::playlist_names());
             self.controller = Controller::Playlist;
         }
+    }
+
+    fn reset_finder(&mut self, matches: Vec<String>) {
+        self.finder_data.matches = matches;
     }
 
     pub fn main_controller(&mut self) {

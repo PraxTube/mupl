@@ -1,7 +1,6 @@
 use std::error::Error;
 use std::fs::File;
 use std::fs::OpenOptions;
-use std::io;
 use std::io::Read;
 use std::io::Write;
 use std::path::PathBuf;
@@ -34,8 +33,12 @@ fn data_path() -> Result<PathBuf, Box<dyn Error>> {
     Ok(path)
 }
 
-pub fn song_data() -> Result<serde_json::Value, Box<dyn Error>> {
-    let path = data_path()?;
+fn playlist_path() -> Result<PathBuf, Box<dyn Error>> {
+    let path: PathBuf = data_dir()?.join("playlist.json");
+    Ok(path)
+}
+
+fn get_data(path: PathBuf) -> Result<serde_json::Value, Box<dyn Error>> {
     let mut file = File::open(path)?;
     let mut contents = String::new();
     file.read_to_string(&mut contents)?;
@@ -44,15 +47,14 @@ pub fn song_data() -> Result<serde_json::Value, Box<dyn Error>> {
     Ok(json_data)
 }
 
-pub fn data_keys() -> Result<Vec<String>, Box<dyn Error>> {
-    let song_data = song_data()?;
-    let keys: Vec<String> = song_data
-        .as_object()
-        .ok_or("Not a valid dict.")?
-        .keys()
-        .cloned()
-        .collect();
-    Ok(keys)
+pub fn song_data() -> Result<serde_json::Value, Box<dyn Error>> {
+    let path = data_path()?;
+    get_data(path)
+}
+
+pub fn playlist_data() -> Result<serde_json::Value, Box<dyn Error>> {
+    let path = playlist_path()?;
+    get_data(path)
 }
 
 fn create_default_file(file: PathBuf) -> Result<(), Box<dyn Error>> {
@@ -74,5 +76,6 @@ fn create_default_file(file: PathBuf) -> Result<(), Box<dyn Error>> {
 
 pub fn check_default_files() -> Result<(), Box<dyn Error>> {
     create_default_file(config_path()?)?;
-    create_default_file(data_path()?)
+    create_default_file(data_path()?)?;
+    create_default_file(playlist_path()?)
 }

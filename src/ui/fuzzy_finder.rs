@@ -16,66 +16,58 @@ use std::{
 };
 use tui::{
     backend::Backend,
-    layout::{Constraint, Direction, Layout},
-    style::{Color, Modifier, Style},
-    text::{Span, Spans, Text},
+    layout::{Constraint, Direction, Layout, Rect},
+    style::{Color, Style},
     widgets::{Block, Borders, Clear, Paragraph},
-    Frame, Terminal,
+    Frame,
 };
 
 use unicode_width::UnicodeWidthStr;
 
-use crate::ui::terminal::App;
 use crate::ui::utils;
 
 pub struct Data {
     input: String,
+    pub matches: Vec<String>,
 }
 
 impl Data {
     pub fn new() -> Data {
         Data {
             input: String::new(),
+            matches: Vec::new(),
         }
     }
 }
 
-fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .margin(2)
-        .constraints([Constraint::Length(3), Constraint::Min(1)].as_ref())
-        .split(f.size());
-
-    let input = Paragraph::new(app.finder_data.input.as_ref())
-        .style(Style::default().fg(Color::Yellow))
-        .block(Block::default().borders(Borders::ALL).title("Input"));
-    f.render_widget(input, chunks[1]);
-    f.set_cursor(
-        // Put cursor past the end of the input text
-        chunks[1].x + app.finder_data.input.width() as u16 + 1,
-        // Move one line down, from the border to the input line
-        chunks[1].y + 1,
-    );
-}
-
 pub fn render_popup<B: Backend>(f: &mut Frame<B>, app: &mut crate::terminal::App, title: &str) {
     let block = Block::default().title(title).borders(Borders::ALL);
-    let area = utils::centered_rect(50, 30, f.size(), 0);
+    let area = utils::centered_rect(50, 30, f.size());
     f.render_widget(Clear, area); //this clears out the background
     f.render_widget(block, area);
 
-    let input_area = utils::centered_rect(50, 15, f.size(), 1);
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .margin(1)
+        .constraints(
+            [
+                Constraint::Length(3),
+                Constraint::Length(1),
+                Constraint::Min(1),
+            ]
+            .as_ref(),
+        )
+        .split(area);
 
     let input = Paragraph::new(app.finder_data.input.as_ref())
         .style(Style::default().fg(Color::Yellow))
-        .block(Block::default().borders(Borders::ALL).title("Input"));
-    f.render_widget(input, input_area);
+        .block(Block::default().borders(Borders::NONE));
+    f.render_widget(input, chunks[0]);
     f.set_cursor(
         // Put cursor past the end of the input text
-        input_area.x + app.finder_data.input.width() as u16 + 1,
+        chunks[0].x + app.finder_data.input.width() as u16,
         // Move one line down, from the border to the input line
-        input_area.y + 1,
+        chunks[0].y,
     );
 }
 

@@ -1,7 +1,7 @@
 use tui::layout::{Constraint, Direction, Layout, Rect};
 
 /// helper function to create a centered rect using up certain percentage of the available rect `r`
-pub fn centered_rect(percent_x: u16, percent_y: u16, r: Rect, margin: u16) -> Rect {
+pub fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
     let popup_layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
@@ -12,7 +12,6 @@ pub fn centered_rect(percent_x: u16, percent_y: u16, r: Rect, margin: u16) -> Re
             ]
             .as_ref(),
         )
-        .margin(margin)
         .split(r);
 
     Layout::default()
@@ -25,6 +24,5 @@ pub fn centered_rect(percent_x: u16, percent_y: u16, r: Rect, margin: u16) -> Re
             ]
             .as_ref(),
         )
-        .margin(margin)
         .split(popup_layout[1])[1]
 }
