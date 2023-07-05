@@ -79,3 +79,9 @@ pub fn check_default_files() -> Result<(), Box<dyn Error>> {
     create_default_file(data_path()?)?;
     create_default_file(playlist_path()?)
 }
+
+pub fn write_playlist_data(data: serde_json::Value) -> Result<(), Box<dyn Error>> {
+    let file = std::fs::File::create(playlist_path()?)?;
+    serde_json::to_writer_pretty(file, &data)?;
+    Ok(())
+}

@@ -24,6 +24,7 @@ use crate::song::SongInfo;
 use crate::ui::playlist;
 use crate::ui::utils::StatefulList;
 
+#[derive(PartialEq)]
 enum Controller {
     Main,
     Playlist,
@@ -37,8 +38,6 @@ pub struct App {
     song_info: Option<SongInfo>,
     songs: Vec<std::path::PathBuf>,
     song_data: serde_json::Value,
-
-    playlist_popup: bool,
 
     controller: Controller,
     tx: Sender<SongInfo>,
@@ -64,8 +63,6 @@ impl App {
             song_info: None,
             songs: _songs,
             song_data: _song_data,
-
-            playlist_popup: false,
 
             controller: Controller::Main,
             tx: _tx,
@@ -104,16 +101,23 @@ impl App {
 
     fn add_to_playlist(&mut self) {
         if self.items.state.selected() != None {
-            self.playlist_popup = true;
-            self.finder_data.reset(playlist::playlist_names());
+            self.finder_data
+                .reset(playlist::playlist_names(), playlist::add_song_to_playlist);
             self.controller = Controller::Playlist;
         }
     }
 
     pub fn main_controller(&mut self) {
-        self.playlist_popup = false;
         self.controller = Controller::Main;
-        println!("{}", self.finder_data.output);
+    }
+
+    pub fn selected_song(&mut self) -> Option<SongInfo> {
+        match self.items.state.selected() {
+            Some(index) => {
+                return Some(self.items.items[index].clone());
+            }
+            None => return None,
+        }
     }
 }
 
@@ -282,7 +286,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         None => {}
     }
 
-    if app.playlist_popup {
+    if app.controller == Controller::Playlist {
         playlist::render_popup(f, app);
     }
 }

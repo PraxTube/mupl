@@ -1,14 +1,3 @@
-/// A simple example demonstrating how to handle user input. This is
-/// a bit out of the scope of the library as it does not provide any
-/// input handling out of the box. However, it may helps some to get
-/// started.
-///
-/// This is a very simple example:
-///   * A input box always focused. Every character you type is registered
-///   here
-///   * Pressing Backspace erases a character
-///   * Pressing Enter pushes the current input in the history of previous
-///   messages
 use crossterm::event::{self, Event, KeyCode};
 use std::{
     io,
@@ -33,6 +22,7 @@ pub struct Data {
     pub output: String,
     possible_matches: Vec<String>,
     stateful_matches: utils::StatefulList<String>,
+    pub result_func: Option<fn(&mut crate::ui::terminal::App) -> ()>,
 }
 
 impl Data {
@@ -42,6 +32,7 @@ impl Data {
             output: String::new(),
             possible_matches: Vec::new(),
             stateful_matches: utils::StatefulList::with_items(Vec::new()),
+            result_func: None,
         }
     }
 
@@ -55,9 +46,14 @@ impl Data {
         self.recalculate_matches();
     }
 
-    pub fn reset(&mut self, _possible_matches: Vec<String>) {
+    pub fn reset(
+        &mut self,
+        _possible_matches: Vec<String>,
+        _result_func: fn(&mut crate::ui::terminal::App) -> (),
+    ) {
         self.input = String::new();
         self.possible_matches = _possible_matches.clone();
+        self.result_func = Some(_result_func);
         self.stateful_matches = utils::StatefulList::with_items(_possible_matches);
     }
 
@@ -92,6 +88,9 @@ impl Data {
         if self.stateful_matches.items.len() == 0 {
             return false;
         }
+        if self.stateful_matches.state.selected() == None {
+            return false;
+        }
 
         self.output =
             self.stateful_matches.items[self.stateful_matches.state.selected().unwrap()].clone();
@@ -118,14 +117,13 @@ pub fn render_popup<B: Backend>(f: &mut Frame<B>, app: &mut crate::terminal::App
         )
         .split(area);
 
-    let input = Paragraph::new(app.finder_data.input.as_ref())
+    let input = Paragraph::new(format!("> {}", app.finder_data.input))
         .style(Style::default().fg(Color::Yellow))
         .block(Block::default().borders(Borders::NONE));
     f.render_widget(input, chunks[0]);
     f.set_cursor(
         // Put cursor past the end of the input text
-        chunks[0].x + app.finder_data.input.width() as u16,
-        // Move one line down, from the border to the input line
+        chunks[0].x + app.finder_data.input.width() as u16 + 2,
         chunks[0].y,
     );
     let items: Vec<ListItem> = app
@@ -175,6 +173,10 @@ pub fn controller<B: Backend>(
                 }
                 KeyCode::Enter => {
                     if app.finder_data.check_finding() {
+                        match app.finder_data.result_func {
+                            Some(func) => func(app),
+                            None => {}
+                        }
                         app.main_controller();
                     }
                 }
