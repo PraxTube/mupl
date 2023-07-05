@@ -3,6 +3,7 @@ mod load;
 mod playlist;
 mod song;
 mod ui;
+mod utils;
 
 use std::error::Error;
 use std::sync::mpsc;

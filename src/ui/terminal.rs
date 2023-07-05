@@ -11,18 +11,19 @@ use std::{
 };
 use tui::{
     backend::{Backend, CrosstermBackend},
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
-    text::{Span, Spans},
-    widgets::{Block, Borders, Gauge, LineGauge, List, ListItem, Paragraph},
+    layout::{Constraint, Direction, Layout},
+    widgets::{Block, Borders},
     Frame, Terminal,
 };
 
 use crate::data;
 use crate::load;
 use crate::playlist;
-use crate::song::SongInfo;
 use crate::ui;
+
+use crate::song::SongInfo;
+use crate::ui::active_song_info::render_active_song_info;
+use crate::ui::song::render_song_list;
 use crate::ui::utils::StatefulList;
 
 #[derive(PartialEq)]
@@ -33,12 +34,12 @@ enum Controller {
 
 pub struct App {
     pub finder_data: crate::ui::fuzzy_finder::Data,
-    items: StatefulList<SongInfo>,
+    pub items: StatefulList<SongInfo>,
 
-    progress: u32,
-    song_info: Option<SongInfo>,
+    pub progress: u32,
+    pub song_info: Option<SongInfo>,
     songs: Vec<std::path::PathBuf>,
-    song_data: serde_json::Value,
+    pub song_data: serde_json::Value,
 
     controller: Controller,
     tx: Sender<SongInfo>,
@@ -202,78 +203,6 @@ fn main_controller<B: Backend>(
     Ok(())
 }
 
-fn render_song_list<B: Backend>(f: &mut Frame<B>, app: &mut App, chunk: Rect) {
-    let items: Vec<ListItem> = app
-        .items
-        .items
-        .iter()
-        .map(|i| {
-            let song_body = Spans::from(Span::styled(&i.name, Style::default()));
-            ListItem::new(song_body).style(Style::default())
-        })
-        .collect();
-
-    // Create a List from all list items and highlight the currently selected one
-    let items = List::new(items)
-        .block(Block::default().borders(Borders::ALL).title("Song List"))
-        .highlight_style(Style::default().bg(Color::Red).add_modifier(Modifier::BOLD))
-        .highlight_symbol("> ");
-
-    // We can now render the item list
-    f.render_stateful_widget(items, chunk, &mut app.items.state);
-}
-
-fn render_play_song<B: Backend>(f: &mut Frame<B>, app: &mut App, chunk: Rect, song_info: SongInfo) {
-    let playing_song_chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .margin(1)
-        .constraints(
-            [
-                Constraint::Length(4),
-                Constraint::Length(3),
-                Constraint::Length(3),
-                Constraint::Min(1),
-            ]
-            .as_ref(),
-        )
-        .split(chunk);
-
-    let paragraph_info = Paragraph::new(format!(
-        "\nName: {}\nFile: {}",
-        app.song_data[&song_info.name]["name"], app.song_data[&song_info.name]["artist"][0]
-    ))
-    .alignment(Alignment::Left);
-    f.render_widget(paragraph_info, playing_song_chunks[0]);
-
-    let label = format!(
-        "{}/{} - ({:.0}%)",
-        format_time(app.progress),
-        format_time(song_info.duration),
-        app.progress as f64 / song_info.duration as f64 * 100.0
-    );
-    let ratio: f64 = (app.get_progress() as f64 / song_info.duration as f64)
-        .max(0.0)
-        .min(1.0);
-    let gauge = Gauge::default()
-        .block(Block::default().borders(Borders::ALL))
-        .gauge_style(Style::default().fg(Color::Yellow))
-        .ratio(ratio)
-        .label(label.clone());
-    f.render_widget(gauge, playing_song_chunks[1]);
-
-    let gauge = LineGauge::default()
-        .block(Block::default().borders(Borders::ALL))
-        .gauge_style(
-            Style::default()
-                .fg(Color::Yellow)
-                .bg(Color::Black)
-                .add_modifier(Modifier::BOLD),
-        )
-        .ratio(ratio)
-        .label(label);
-    f.render_widget(gauge, playing_song_chunks[2]);
-}
-
 fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
@@ -286,19 +215,11 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     f.render_widget(block, chunks[1]);
 
     match &app.song_info {
-        Some(info) => render_play_song(f, app, chunks[1], info.clone()),
+        Some(info) => render_active_song_info(f, app, chunks[1], info.clone()),
         None => {}
     }
 
     if app.controller == Controller::Playlist {
         ui::playlist::render_popup(f, app);
     }
-}
-
-fn format_time(seconds: u32) -> String {
-    let hours = seconds / 3600;
-    let minutes = (seconds % 3600) / 60;
-    let seconds = seconds % 60;
-
-    format!("{:02}:{:02}:{:02}", hours, minutes, seconds)
 }
