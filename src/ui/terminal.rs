@@ -20,8 +20,9 @@ use tui::{
 
 use crate::data;
 use crate::load;
+use crate::playlist;
 use crate::song::SongInfo;
-use crate::ui::playlist;
+use crate::ui;
 use crate::ui::utils::StatefulList;
 
 #[derive(PartialEq)]
@@ -81,6 +82,7 @@ impl App {
                 self.progress += 1;
                 if self.progress > info.duration {
                     self.progress = 0;
+                    self.tx.send(self.song_info.clone().unwrap());
                 }
             }
             None => {}
@@ -164,7 +166,9 @@ fn run_app<B: Backend>(
         terminal.draw(|f| ui(f, &mut app))?;
         match app.controller {
             Controller::Main => main_controller::<B>(&mut app, tick_rate, &mut last_tick),
-            Controller::Playlist => playlist::controller::<B>(&mut app, tick_rate, &mut last_tick),
+            Controller::Playlist => {
+                ui::playlist::controller::<B>(&mut app, tick_rate, &mut last_tick)
+            }
         }?;
     }
 }
@@ -287,7 +291,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     }
 
     if app.controller == Controller::Playlist {
-        playlist::render_popup(f, app);
+        ui::playlist::render_popup(f, app);
     }
 }
 
