@@ -11,6 +11,7 @@ pub enum DataType {
 
 pub enum Action {
     TogglePause,
+    Volume,
     AddSong,
 }
 
@@ -55,15 +56,24 @@ fn toggle_pause(sink: &Sink) {
     }
 }
 
+fn change_volume(volume: i32, sink: &Sink) {
+    sink.set_volume(volume as f32 * 0.01);
+}
+
 fn match_action(action_data: ActionData, sink: &Sink) {
     match action_data.action {
         Action::AddSong => {
             if let DataType::SongInfo(data) = action_data.data {
-                add_song_to_sink(data, &sink);
+                add_song_to_sink(data, sink);
             }
         }
         Action::TogglePause => {
             toggle_pause(sink);
+        }
+        Action::Volume => {
+            if let DataType::Int(volume) = action_data.data {
+                change_volume(volume, sink)
+            }
         }
     }
 }

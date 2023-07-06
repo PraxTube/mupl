@@ -37,6 +37,7 @@ pub struct App {
     pub items: StatefulList<song::SongInfo>,
 
     pub progress: u32,
+    pub volume: i32,
     pub song_info: Option<song::SongInfo>,
     songs: Vec<std::path::PathBuf>,
     pub song_data: serde_json::Value,
@@ -63,6 +64,7 @@ impl App {
             items: StatefulList::with_items(_items),
 
             progress: 0,
+            volume: 100,
             song_info: None,
             songs: _songs,
             song_data: _song_data,
@@ -73,10 +75,6 @@ impl App {
             pause: false,
             quit: false,
         }
-    }
-
-    pub fn get_progress(&self) -> u32 {
-        self.progress
     }
 
     pub fn on_tick(&mut self) {
@@ -108,6 +106,9 @@ impl App {
 
         self.progress = 0;
         self.song_info = Some(new_song_info.clone());
+        if self.pause {
+            self.toggle_pause_song();
+        }
         self.tx.send(song::ActionData {
             action: song::Action::AddSong,
             data: song::DataType::SongInfo(new_song_info),
@@ -120,6 +121,14 @@ impl App {
                 .reset(playlist::playlist_names(), playlist::add_song_to_playlist);
             self.controller = Controller::Playlist;
         }
+    }
+
+    fn change_volume(&mut self, amount: i32) {
+        self.volume = (self.volume + amount).max(0).min(100);
+        self.tx.send(song::ActionData {
+            action: song::Action::Volume,
+            data: song::DataType::Int(self.volume),
+        });
     }
 
     pub fn toggle_pause_song(&mut self) {
@@ -216,8 +225,12 @@ fn main_controller<B: Backend>(
                 KeyCode::Char('j') => app.items.next(),
                 KeyCode::Char('k') => app.items.previous(),
                 KeyCode::Char('p') => app.add_to_playlist(),
-                KeyCode::Enter => app.change_playing_song(),
+                // Directly on Song
+                KeyCode::Char('w') => app.change_volume(5),
+                KeyCode::Char('b') => app.change_volume(-5),
                 KeyCode::Char(' ') => app.toggle_pause_song(),
+                // Misc
+                KeyCode::Enter => app.change_playing_song(),
                 _ => {}
             }
         }
