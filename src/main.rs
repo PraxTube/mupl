@@ -10,7 +10,7 @@ use std::sync::mpsc;
 
 use clap::Parser;
 
-use song::{stream_song, SongInfo};
+use song::{stream_song, ActionData};
 use ui::terminal;
 
 #[derive(Parser, Debug)]
@@ -24,7 +24,7 @@ struct Args {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let (tx, rx) = mpsc::channel::<SongInfo>();
+    let (tx, rx) = mpsc::channel::<ActionData>();
     data::check_default_files()?;
 
     let _streaming_thread = stream_song(rx);

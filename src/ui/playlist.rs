@@ -8,7 +8,7 @@ use crate::ui::fuzzy_finder;
 use crate::ui::terminal::App;
 
 pub fn render_popup<B: Backend>(f: &mut Frame<B>, app: &mut App) {
-    fuzzy_finder::render_popup(f, app, "Song PlayList");
+    fuzzy_finder::render_popup(f, app, "Add Song to PlayList");
 }
 
 pub fn controller<B: Backend>(

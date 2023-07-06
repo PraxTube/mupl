@@ -19,9 +19,9 @@ use tui::{
 use crate::data;
 use crate::load;
 use crate::playlist;
+use crate::song;
 use crate::ui;
 
-use crate::song::SongInfo;
 use crate::ui::active_song_info::render_active_song_info;
 use crate::ui::song::render_song_list;
 use crate::ui::utils::StatefulList;
@@ -34,15 +34,15 @@ enum Controller {
 
 pub struct App {
     pub finder_data: crate::ui::fuzzy_finder::Data,
-    pub items: StatefulList<SongInfo>,
+    pub items: StatefulList<song::SongInfo>,
 
     pub progress: u32,
-    pub song_info: Option<SongInfo>,
+    pub song_info: Option<song::SongInfo>,
     songs: Vec<std::path::PathBuf>,
     pub song_data: serde_json::Value,
 
     controller: Controller,
-    tx: Sender<SongInfo>,
+    tx: Sender<song::ActionData>,
 
     quit: bool,
 }
@@ -51,11 +51,11 @@ impl App {
     pub fn new(
         _songs: Vec<std::path::PathBuf>,
         _song_data: serde_json::Value,
-        _tx: Sender<SongInfo>,
+        _tx: Sender<song::ActionData>,
     ) -> App {
-        let mut _items: Vec<SongInfo> = Vec::new();
+        let mut _items: Vec<song::SongInfo> = Vec::new();
         for song in &_songs {
-            _items.push(SongInfo::new(song));
+            _items.push(song::SongInfo::new(song));
         }
         App {
             finder_data: crate::ui::fuzzy_finder::Data::new(),
@@ -83,7 +83,10 @@ impl App {
                 self.progress += 1;
                 if self.progress > info.duration {
                     self.progress = 0;
-                    self.tx.send(self.song_info.clone().unwrap());
+                    self.tx.send(song::ActionData {
+                        action: song::Action::AddSong,
+                        data: song::DataType::SongInfo(self.song_info.clone().unwrap()),
+                    });
                 }
             }
             None => {}
@@ -99,7 +102,10 @@ impl App {
 
         self.progress = 0;
         self.song_info = Some(new_song_info.clone());
-        self.tx.send(new_song_info);
+        self.tx.send(song::ActionData {
+            action: song::Action::AddSong,
+            data: song::DataType::SongInfo(new_song_info),
+        });
     }
 
     fn add_to_playlist(&mut self) {
@@ -110,11 +116,13 @@ impl App {
         }
     }
 
+    pub fn pause_song(&mut self) {}
+
     pub fn main_controller(&mut self) {
         self.controller = Controller::Main;
     }
 
-    pub fn selected_song(&mut self) -> Option<SongInfo> {
+    pub fn selected_song(&mut self) -> Option<song::SongInfo> {
         match self.items.state.selected() {
             Some(index) => {
                 return Some(self.items.items[index].clone());
@@ -124,7 +132,7 @@ impl App {
     }
 }
 
-pub fn setup(tx: Sender<SongInfo>) -> Result<(), Box<dyn Error>> {
+pub fn setup(tx: Sender<song::ActionData>) -> Result<(), Box<dyn Error>> {
     let songs = load::load_music_files("/home/rancic/music/");
     let song_data = data::song_data()?;
 
@@ -192,6 +200,7 @@ fn main_controller<B: Backend>(
                 KeyCode::Char('k') => app.items.previous(),
                 KeyCode::Char('p') => app.add_to_playlist(),
                 KeyCode::Enter => app.change_playing_song(),
+                KeyCode::Null => app.pause_song(),
                 _ => {}
             }
         }
