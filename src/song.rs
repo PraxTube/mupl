@@ -6,6 +6,7 @@ use rodio::{OutputStream, Sink, Source};
 pub enum DataType {
     Int(i32),
     SongInfo(SongInfo),
+    Null,
 }
 
 pub enum Action {
@@ -46,6 +47,14 @@ fn add_song_to_sink(song_info: SongInfo, sink: &Sink) {
     sink.append(source);
 }
 
+fn toggle_pause(sink: &Sink) {
+    if sink.is_paused() {
+        sink.play();
+    } else {
+        sink.pause();
+    }
+}
+
 fn match_action(action_data: ActionData, sink: &Sink) {
     match action_data.action {
         Action::AddSong => {
@@ -53,7 +62,9 @@ fn match_action(action_data: ActionData, sink: &Sink) {
                 add_song_to_sink(data, &sink);
             }
         }
-        Action::TogglePause => {}
+        Action::TogglePause => {
+            toggle_pause(sink);
+        }
     }
 }
 

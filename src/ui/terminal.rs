@@ -44,6 +44,7 @@ pub struct App {
     controller: Controller,
     tx: Sender<song::ActionData>,
 
+    pause: bool,
     quit: bool,
 }
 
@@ -69,6 +70,7 @@ impl App {
             controller: Controller::Main,
             tx: _tx,
 
+            pause: false,
             quit: false,
         }
     }
@@ -78,6 +80,10 @@ impl App {
     }
 
     pub fn on_tick(&mut self) {
+        if self.pause {
+            return;
+        }
+
         match &self.song_info {
             Some(info) => {
                 self.progress += 1;
@@ -116,7 +122,18 @@ impl App {
         }
     }
 
-    pub fn pause_song(&mut self) {}
+    pub fn toggle_pause_song(&mut self) {
+        if self.song_info.is_none() {
+            return;
+        }
+
+        self.pause = !self.pause;
+
+        self.tx.send(song::ActionData {
+            action: song::Action::TogglePause,
+            data: song::DataType::Null,
+        });
+    }
 
     pub fn main_controller(&mut self) {
         self.controller = Controller::Main;
@@ -200,7 +217,7 @@ fn main_controller<B: Backend>(
                 KeyCode::Char('k') => app.items.previous(),
                 KeyCode::Char('p') => app.add_to_playlist(),
                 KeyCode::Enter => app.change_playing_song(),
-                KeyCode::Null => app.pause_song(),
+                KeyCode::Char(' ') => app.toggle_pause_song(),
                 _ => {}
             }
         }
