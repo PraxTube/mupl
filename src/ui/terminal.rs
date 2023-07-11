@@ -29,7 +29,8 @@ use crate::ui::utils::StatefulList;
 #[derive(PartialEq)]
 enum Controller {
     Main,
-    Playlist,
+    AddToPlaylist,
+    PlayPlaylist,
 }
 
 pub struct App {
@@ -41,6 +42,8 @@ pub struct App {
     pub song_info: Option<song::SongInfo>,
     songs: Vec<std::path::PathBuf>,
     pub song_data: serde_json::Value,
+
+    pub playlist_info: Option<playlist::PlaylistInfo>,
 
     controller: Controller,
     tx: Sender<song::ActionData>,
@@ -64,10 +67,12 @@ impl App {
             items: StatefulList::with_items(_items),
 
             progress: 0,
-            volume: 100,
+            volume: 50,
             song_info: None,
             songs: _songs,
             song_data: _song_data,
+
+            playlist_info: None,
 
             controller: Controller::Main,
             tx: _tx,
@@ -98,6 +103,11 @@ impl App {
     }
 
     fn change_playing_song(&mut self) {
+        if self.playlist_info.is_some() {
+            self.playback_playlist();
+            return ();
+        }
+
         if self.items.state.selected() == None {
             return ();
         }
@@ -119,7 +129,21 @@ impl App {
         if self.items.state.selected() != None {
             self.finder_data
                 .reset(playlist::playlist_names(), playlist::add_song_to_playlist);
-            self.controller = Controller::Playlist;
+            self.controller = Controller::AddToPlaylist;
+        }
+    }
+
+    fn play_playlist(&mut self) {
+        self.finder_data
+            .reset(playlist::playlist_names(), playlist::play_playlist);
+        self.controller = Controller::PlayPlaylist;
+    }
+
+    fn playback_playlist(&mut self) {
+        let playlist_info = self.playlist_info.as_mut().unwrap();
+        if playlist_info.index >= playlist_info.songs.len() {
+            self.playlist_info = None;
+            return ();
         }
     }
 
@@ -201,8 +225,11 @@ fn run_app<B: Backend>(
         terminal.draw(|f| ui(f, &mut app))?;
         match app.controller {
             Controller::Main => main_controller::<B>(&mut app, tick_rate, &mut last_tick),
-            Controller::Playlist => {
-                ui::playlist::controller::<B>(&mut app, tick_rate, &mut last_tick)
+            Controller::AddToPlaylist => {
+                ui::playlist::controller_add_to_playlist::<B>(&mut app, tick_rate, &mut last_tick)
+            }
+            Controller::PlayPlaylist => {
+                ui::playlist::controller_play_playlist::<B>(&mut app, tick_rate, &mut last_tick)
             }
         }?;
     }
@@ -225,6 +252,7 @@ fn main_controller<B: Backend>(
                 KeyCode::Char('j') => app.items.next(),
                 KeyCode::Char('k') => app.items.previous(),
                 KeyCode::Char('p') => app.add_to_playlist(),
+                KeyCode::Char('P') => app.play_playlist(),
                 // Directly on Song
                 KeyCode::Char('w') => app.change_volume(5),
                 KeyCode::Char('b') => app.change_volume(-5),
@@ -258,7 +286,9 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         None => {}
     }
 
-    if app.controller == Controller::Playlist {
-        ui::playlist::render_popup(f, app);
+    if app.controller == Controller::AddToPlaylist {
+        ui::playlist::render_popup_add_to_playlist(f, app);
+    } else if app.controller == Controller::PlayPlaylist {
+        ui::playlist::render_popup_play_playlist(f, app);
     }
 }

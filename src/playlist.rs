@@ -3,6 +3,22 @@ use serde_json::json;
 use crate::data::{self, playlist_data};
 use crate::ui::terminal::App;
 
+pub struct PlaylistInfo {
+    pub playlist: String,
+    pub songs: Vec<String>,
+    pub index: usize,
+}
+
+impl PlaylistInfo {
+    pub fn new() -> PlaylistInfo {
+        PlaylistInfo {
+            playlist: String::new(),
+            songs: Vec::new(),
+            index: 0,
+        }
+    }
+}
+
 pub fn playlist_names() -> Vec<String> {
     let data = playlist_data();
     if let Err(_) = data {
@@ -45,4 +61,8 @@ pub fn add_song_to_playlist(app: &mut App) {
         Ok(_) => {}
         Err(err) => panic!("There was an error when writing playlist data, {}", err),
     }
+}
+
+pub fn play_playlist(app: &mut App) {
+    app.playlist_info = Some(PlaylistInfo::new());
 }
