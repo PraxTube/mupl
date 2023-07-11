@@ -57,6 +57,11 @@ pub fn playlist_data() -> Result<serde_json::Value, Box<dyn Error>> {
     get_data(path)
 }
 
+pub fn config_data() -> Result<serde_json::Value, Box<dyn Error>> {
+    let path = config_path()?;
+    get_data(path)
+}
+
 fn create_default_file(file: PathBuf) -> Result<(), Box<dyn Error>> {
     if file.exists() {
         return Ok(());

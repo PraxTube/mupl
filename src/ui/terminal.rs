@@ -40,7 +40,6 @@ pub struct App {
     pub progress: u32,
     pub volume: i32,
     pub song_info: Option<song::SongInfo>,
-    songs: Vec<std::path::PathBuf>,
     pub song_data: serde_json::Value,
 
     pub playlist_info: Option<playlist::PlaylistInfo>,
@@ -53,13 +52,9 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(
-        _songs: Vec<std::path::PathBuf>,
-        _song_data: serde_json::Value,
-        _tx: Sender<song::ActionData>,
-    ) -> App {
+    pub fn new(_song_data: serde_json::Value, _tx: Sender<song::ActionData>) -> App {
         let mut _items: Vec<song::SongInfo> = Vec::new();
-        for song in &_songs {
+        for song in &load::load_music_files() {
             _items.push(song::SongInfo::new(song));
         }
         App {
@@ -69,7 +64,6 @@ impl App {
             progress: 0,
             volume: 50,
             song_info: None,
-            songs: _songs,
             song_data: _song_data,
 
             playlist_info: None,
@@ -183,7 +177,6 @@ impl App {
 }
 
 pub fn setup(tx: Sender<song::ActionData>) -> Result<(), Box<dyn Error>> {
-    let songs = load::load_music_files("/home/rancic/music/");
     let song_data = data::song_data()?;
 
     enable_raw_mode()?;
@@ -193,7 +186,7 @@ pub fn setup(tx: Sender<song::ActionData>) -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     let tick_rate = Duration::from_secs(1);
-    let app = App::new(songs, song_data, tx);
+    let app = App::new(song_data, tx);
     let res = run_app(&mut terminal, app, tick_rate);
 
     disable_raw_mode()?;
