@@ -6,6 +6,7 @@ use std::io::Write;
 use std::path::PathBuf;
 
 use serde_json;
+use walkdir::WalkDir;
 
 fn data_dir() -> Result<PathBuf, Box<dyn Error>> {
     let home_dir = match std::env::var("HOME") {
@@ -89,4 +90,33 @@ pub fn write_playlist_data(data: serde_json::Value) -> Result<(), Box<dyn Error>
     let file = std::fs::File::create(playlist_path()?)?;
     serde_json::to_writer_pretty(file, &data)?;
     Ok(())
+}
+
+pub fn song_filestem_to_path(filestem: &str) -> Option<PathBuf> {
+    fn music_dir() -> String {
+        match config_data() {
+            Ok(data) => {
+                return data["music-folder"].to_string().replace("\"", "");
+            }
+            Err(err) => panic!("Couldn't read config data {}", err),
+        }
+    }
+
+    for entry in WalkDir::new(music_dir()).into_iter().filter_map(|e| e.ok()) {
+        let path = entry.path();
+        if !path.is_file() {
+            continue;
+        }
+
+        if filestem
+            == PathBuf::from(path)
+                .file_stem()
+                .expect("Not a valid file")
+                .to_str()
+                .expect("Can not convert file to str")
+        {
+            return Some(PathBuf::from(entry.path()));
+        }
+    }
+    None
 }

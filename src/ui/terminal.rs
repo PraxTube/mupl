@@ -55,7 +55,13 @@ impl App {
     pub fn new(_song_data: serde_json::Value, _tx: Sender<song::ActionData>) -> App {
         let mut _items: Vec<song::SongInfo> = Vec::new();
         for song in &load::load_music_files() {
-            _items.push(song::SongInfo::new(song));
+            _items.push(song::SongInfo::new(
+                song.file_stem()
+                    .expect("Not a valid music file")
+                    .to_str()
+                    .expect("Can not convert to song file to str")
+                    .to_string(),
+            ));
         }
         App {
             finder_data: crate::ui::fuzzy_finder::Data::new(),
