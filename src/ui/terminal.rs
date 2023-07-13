@@ -96,10 +96,7 @@ impl App {
                 self.progress += 1;
                 if self.progress > info.duration {
                     self.progress = 0;
-                    self.tx.send(song::ActionData {
-                        action: song::Action::AddSong,
-                        data: song::DataType::SongInfo(self.song_info.clone().unwrap()),
-                    });
+                    self.change_playing_song();
                 }
             }
             None => {}
@@ -159,13 +156,7 @@ impl App {
             data: song::DataType::SongInfo(new_song_info),
         });
         playlist_info.index += 1;
-        self.debugger
-            .push_message(format!("Increasing index to: {}", playlist_info.index));
         self.playlist_info = Some(playlist_info.clone());
-        self.debugger.push_message(format!(
-            "Increasing index to: {}",
-            self.playlist_info.as_mut().unwrap().index
-        ));
     }
 
     fn change_volume(&mut self, amount: i32) {
