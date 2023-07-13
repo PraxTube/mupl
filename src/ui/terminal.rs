@@ -20,9 +20,11 @@ use crate::data;
 use crate::load;
 use crate::playlist;
 use crate::song;
+use crate::song::SongInfo;
 use crate::ui;
 
 use crate::ui::active_song_info::render_active_song_info;
+use crate::ui::debug;
 use crate::ui::song::render_song_list;
 use crate::ui::utils::StatefulList;
 
@@ -43,6 +45,7 @@ pub struct App {
     pub song_data: serde_json::Value,
 
     pub playlist_info: Option<playlist::PlaylistInfo>,
+    pub debugger: debug::Debug,
 
     controller: Controller,
     tx: Sender<song::ActionData>,
@@ -55,7 +58,7 @@ impl App {
     pub fn new(_song_data: serde_json::Value, _tx: Sender<song::ActionData>) -> App {
         let mut _items: Vec<song::SongInfo> = Vec::new();
         for song in &load::load_music_files() {
-            _items.push(song::SongInfo::new(
+            _items.push(SongInfo::new(
                 song.file_stem()
                     .expect("Not a valid music file")
                     .to_str()
@@ -73,6 +76,7 @@ impl App {
             song_data: _song_data,
 
             playlist_info: None,
+            debugger: debug::Debug::new(),
 
             controller: Controller::Main,
             tx: _tx,
@@ -140,11 +144,28 @@ impl App {
     }
 
     fn playback_playlist(&mut self) {
-        let playlist_info = self.playlist_info.as_mut().unwrap();
+        let mut playlist_info = self.playlist_info.as_mut().unwrap();
         if playlist_info.index >= playlist_info.songs.len() {
             self.playlist_info = None;
             return ();
         }
+
+        let new_song_info = SongInfo::new(playlist_info.songs[playlist_info.index].clone());
+
+        self.progress = 0;
+        self.song_info = Some(new_song_info.clone());
+        self.tx.send(song::ActionData {
+            action: song::Action::AddSong,
+            data: song::DataType::SongInfo(new_song_info),
+        });
+        playlist_info.index += 1;
+        self.debugger
+            .push_message(format!("Increasing index to: {}", playlist_info.index));
+        self.playlist_info = Some(playlist_info.clone());
+        self.debugger.push_message(format!(
+            "Increasing index to: {}",
+            self.playlist_info.as_mut().unwrap().index
+        ));
     }
 
     fn change_volume(&mut self, amount: i32) {
@@ -274,11 +295,15 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
         .split(f.size());
+    let right_chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Percentage(65), Constraint::Percentage(35)].as_ref())
+        .split(chunks[1]);
 
     render_song_list(f, app, chunks[0]);
 
     let block = Block::default().title("Playing Song").borders(Borders::ALL);
-    f.render_widget(block, chunks[1]);
+    f.render_widget(block, right_chunks[0]);
 
     match &app.song_info {
         Some(info) => render_active_song_info(f, app, chunks[1], info.clone()),
@@ -290,4 +315,6 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     } else if app.controller == Controller::PlayPlaylist {
         ui::playlist::render_popup_play_playlist(f, app);
     }
+
+    debug::render_active_song_info(f, app, right_chunks[1]);
 }

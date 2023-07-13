@@ -3,6 +3,7 @@ use serde_json::json;
 use crate::data::{self, playlist_data};
 use crate::ui::terminal::App;
 
+#[derive(Clone)]
 pub struct PlaylistInfo {
     pub playlist: String,
     pub songs: Vec<String>,
@@ -10,10 +11,24 @@ pub struct PlaylistInfo {
 }
 
 impl PlaylistInfo {
-    pub fn new() -> PlaylistInfo {
+    pub fn new(playlist_name: &str) -> PlaylistInfo {
+        let playlist_data = playlist_data();
+        let mut _songs;
+        match playlist_data {
+            Ok(data) => {
+                _songs = data[playlist_name]
+                    .as_array()
+                    .expect("the playlist data is not an array")
+                    .iter()
+                    .map(|v| v.to_string().replace("\"", ""))
+                    .collect()
+            }
+            Err(err) => panic!("can not access playlist data {}", err),
+        }
+
         PlaylistInfo {
-            playlist: String::new(),
-            songs: Vec::new(),
+            playlist: playlist_name.to_string(),
+            songs: _songs,
             index: 0,
         }
     }
@@ -64,5 +79,5 @@ pub fn add_song_to_playlist(app: &mut App) {
 }
 
 pub fn play_playlist(app: &mut App) {
-    app.playlist_info = Some(PlaylistInfo::new());
+    app.playlist_info = Some(PlaylistInfo::new(&app.finder_data.output));
 }
