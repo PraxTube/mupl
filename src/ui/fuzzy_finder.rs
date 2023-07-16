@@ -177,7 +177,6 @@ pub fn controller<B: Backend>(
                             Some(func) => func(app),
                             None => {}
                         }
-                        app.main_controller();
                     }
                 }
                 KeyCode::Esc => app.main_controller(),

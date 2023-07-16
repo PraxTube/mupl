@@ -30,11 +30,12 @@ use crate::ui::song::render_song_list;
 use crate::ui::utils::StatefulList;
 
 #[derive(PartialEq)]
-enum Controller {
+pub enum Controller {
     Main,
     AddToPlaylist,
     PlayPlaylist,
     ModifyPlaylist,
+    FuzzyFinder,
 }
 
 impl std::fmt::Display for Controller {
@@ -61,7 +62,7 @@ pub struct App {
     pub playlist_info: Option<playlist::PlaylistInfo>,
     pub debugger: debug::Debug,
 
-    controller: Controller,
+    pub controller: Controller,
     tx: Sender<song::ActionData>,
 
     pause: bool,
@@ -152,6 +153,12 @@ impl App {
         self.finder_data
             .reset(playlist::playlist_names(), playlist::play_playlist);
         self.controller = Controller::PlayPlaylist;
+    }
+
+    fn modify_playlist(&mut self) {
+        self.finder_data
+            .reset(playlist::playlist_names(), playlist::modify_playlist);
+        self.controller = Controller::FuzzyFinder;
     }
 
     fn playback_playlist(&mut self) {
@@ -263,6 +270,9 @@ fn run_app<B: Backend>(
             Controller::ModifyPlaylist => {
                 ui::playlist::controller_modify_playlist::<B>(&mut app, tick_rate, &mut last_tick)
             }
+            Controller::FuzzyFinder => {
+                ui::fuzzy_finder::controller::<B>(&mut app, tick_rate, &mut last_tick)
+            }
         }?;
     }
 }
@@ -290,7 +300,7 @@ fn main_controller<B: Backend>(
                 KeyCode::Char('b') => app.change_volume(-5),
                 KeyCode::Char(' ') => app.toggle_pause_song(),
                 // Change Mode
-                KeyCode::Char('m') => app.controller = Controller::ModifyPlaylist,
+                KeyCode::Char('m') => app.modify_playlist(),
                 // Misc
                 KeyCode::Enter => app.change_playing_song(),
                 _ => {}
@@ -335,6 +345,8 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         ui::playlist::render_popup_play_playlist(f, app);
     } else if app.controller == Controller::ModifyPlaylist {
         ui::playlist::render_modify_playlist(f, app, chunks[0], right_chunks[0]);
+    } else if app.controller == Controller::FuzzyFinder {
+        ui::fuzzy_finder::render_popup(f, app, "Fuzzy Find");
     }
 
     modal::render_modal(f, app, main_chunks[1]);

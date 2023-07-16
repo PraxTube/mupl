@@ -1,6 +1,7 @@
 use serde_json::json;
 
 use crate::data::{self, playlist_data};
+use crate::ui::terminal;
 use crate::ui::terminal::App;
 
 #[derive(Clone)]
@@ -76,8 +77,16 @@ pub fn add_song_to_playlist(app: &mut App) {
         Ok(_) => {}
         Err(err) => panic!("There was an error when writing playlist data, {}", err),
     }
+
+    app.main_controller();
 }
 
 pub fn play_playlist(app: &mut App) {
     app.playlist_info = Some(PlaylistInfo::new(&app.finder_data.output));
+    app.main_controller();
+}
+
+pub fn modify_playlist(app: &mut App) {
+    app.playlist_info = Some(PlaylistInfo::new(&app.finder_data.output));
+    app.controller = terminal::Controller::ModifyPlaylist;
 }
