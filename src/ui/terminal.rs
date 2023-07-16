@@ -25,6 +25,7 @@ use crate::ui;
 
 use crate::ui::active_song_info::render_active_song_info;
 use crate::ui::debug;
+use crate::ui::modal;
 use crate::ui::song::render_song_list;
 use crate::ui::utils::StatefulList;
 
@@ -34,6 +35,18 @@ enum Controller {
     AddToPlaylist,
     PlayPlaylist,
     ModifyPlaylist,
+}
+
+impl std::fmt::Display for Controller {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Controller::Main => write!(f, "Normal"),
+            Controller::AddToPlaylist => write!(f, "AddToPlaylist"),
+            Controller::PlayPlaylist => write!(f, "PlayPlaylist"),
+            Controller::ModifyPlaylist => write!(f, "Modify Playlist"),
+            _ => write!(f, ""),
+        }
+    }
 }
 
 pub struct App {
@@ -193,6 +206,10 @@ impl App {
             None => return None,
         }
     }
+
+    pub fn current_controller(&self) -> String {
+        self.controller.to_string().clone()
+    }
 }
 
 pub fn setup(tx: Sender<song::ActionData>) -> Result<(), Box<dyn Error>> {
@@ -288,10 +305,15 @@ fn main_controller<B: Backend>(
 }
 
 fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+    let main_chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Min(1), Constraint::Length(1)])
+        .split(f.size());
+
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
-        .split(f.size());
+        .split(main_chunks[0]);
     let right_chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Percentage(65), Constraint::Percentage(35)].as_ref())
@@ -315,5 +337,6 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         ui::playlist::render_modify_playlist(f, app, chunks[0], right_chunks[0]);
     }
 
+    modal::render_modal(f, app, main_chunks[1]);
     debug::render_active_song_info(f, app, right_chunks[1]);
 }
