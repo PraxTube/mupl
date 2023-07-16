@@ -33,6 +33,7 @@ enum Controller {
     Main,
     AddToPlaylist,
     PlayPlaylist,
+    ModifyPlaylist,
 }
 
 pub struct App {
@@ -242,6 +243,9 @@ fn run_app<B: Backend>(
             Controller::PlayPlaylist => {
                 ui::playlist::controller_play_playlist::<B>(&mut app, tick_rate, &mut last_tick)
             }
+            Controller::ModifyPlaylist => {
+                ui::playlist::controller_modify_playlist::<B>(&mut app, tick_rate, &mut last_tick)
+            }
         }?;
     }
 }
@@ -268,6 +272,8 @@ fn main_controller<B: Backend>(
                 KeyCode::Char('w') => app.change_volume(5),
                 KeyCode::Char('b') => app.change_volume(-5),
                 KeyCode::Char(' ') => app.toggle_pause_song(),
+                // Change Mode
+                KeyCode::Char('m') => app.controller = Controller::ModifyPlaylist,
                 // Misc
                 KeyCode::Enter => app.change_playing_song(),
                 _ => {}
@@ -305,6 +311,8 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         ui::playlist::render_popup_add_to_playlist(f, app);
     } else if app.controller == Controller::PlayPlaylist {
         ui::playlist::render_popup_play_playlist(f, app);
+    } else if app.controller == Controller::ModifyPlaylist {
+        ui::playlist::render_modify_playlist(f, app, chunks[0], right_chunks[0]);
     }
 
     debug::render_active_song_info(f, app, right_chunks[1]);
