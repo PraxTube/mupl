@@ -334,6 +334,8 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let block = Block::default().title("Playing Song").borders(Borders::ALL);
     f.render_widget(block, right_chunks[0]);
 
+    debug::render_active_song_info(f, app, right_chunks[1]);
+
     match &app.song_info {
         Some(info) => render_active_song_info(f, app, chunks[1], info.clone()),
         None => {}
@@ -350,5 +352,4 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     }
 
     modal::render_modal(f, app, main_chunks[1]);
-    debug::render_active_song_info(f, app, right_chunks[1]);
 }

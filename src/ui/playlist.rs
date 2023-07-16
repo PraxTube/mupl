@@ -14,7 +14,6 @@ use tui::{
 
 use crate::ui::fuzzy_finder;
 use crate::ui::terminal::App;
-use crate::ui::utils::StatefulList;
 
 pub fn render_popup_add_to_playlist<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     fuzzy_finder::render_popup(f, app, "Add Song to PlayList");
@@ -32,7 +31,8 @@ pub fn render_modify_playlist<B: Backend>(
 ) {
     let playlist_info = app.playlist_info.as_ref().expect("No playlist selected");
     let items: Vec<ListItem> = playlist_info
-        .songs
+        .stateful_songs
+        .items
         .iter()
         .map(|song| {
             let song_body = Spans::from(Span::styled(song, Style::default()));
@@ -76,9 +76,14 @@ pub fn controller_modify_playlist<B: Backend>(
     if crossterm::event::poll(timeout)? {
         if let Event::Key(key) = event::read()? {
             match key.code {
-                // Misc
-                KeyCode::Char('q') => app.main_controller(),
-                KeyCode::Esc => app.main_controller(),
+                KeyCode::Char('h') => unselect(app),
+                KeyCode::Char('l') => unselect(app),
+                KeyCode::Char('j') => next(app),
+                KeyCode::Char('k') => previous(app),
+                KeyCode::Char('d') => delete_song(app),
+                // Modal
+                KeyCode::Char('q') => exit(app),
+                KeyCode::Esc => exit(app),
                 _ => {}
             }
         }
@@ -88,4 +93,30 @@ pub fn controller_modify_playlist<B: Backend>(
         *last_tick = Instant::now();
     }
     Ok(())
+}
+
+fn unselect(app: &mut App) {
+    let playlist_info = app.playlist_info.as_mut().expect("No playlist");
+    playlist_info.stateful_songs.unselect();
+    app.playlist_info = Some(playlist_info.clone());
+}
+
+fn next(app: &mut App) {
+    app.debugger.print("NEXT".to_string());
+    let playlist_info = app.playlist_info.as_mut().expect("No playlist");
+    playlist_info.stateful_songs.next();
+    app.playlist_info = Some(playlist_info.clone());
+}
+
+fn previous(app: &mut App) {
+    let playlist_info = app.playlist_info.as_mut().expect("No playlist");
+    playlist_info.stateful_songs.next();
+    app.playlist_info = Some(playlist_info.clone());
+}
+
+fn delete_song(app: &mut App) {}
+
+fn exit(app: &mut App) {
+    app.playlist_info = None;
+    app.main_controller();
 }

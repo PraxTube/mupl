@@ -19,7 +19,7 @@ impl Debug {
         }
     }
 
-    pub fn push_message(&mut self, message: String) {
+    pub fn print(&mut self, message: String) {
         self.messages.push_back(message);
         if self.messages.len() > 10 {
             self.messages.pop_front();

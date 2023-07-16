@@ -3,18 +3,20 @@ use serde_json::json;
 use crate::data::{self, playlist_data};
 use crate::ui::terminal;
 use crate::ui::terminal::App;
+use crate::ui::utils::StatefulList;
 
 #[derive(Clone)]
 pub struct PlaylistInfo {
     pub playlist: String,
     pub songs: Vec<String>,
     pub index: usize,
+    pub stateful_songs: StatefulList<String>,
 }
 
 impl PlaylistInfo {
     pub fn new(playlist_name: &str) -> PlaylistInfo {
         let playlist_data = playlist_data();
-        let mut _songs;
+        let mut _songs: Vec<String>;
         match playlist_data {
             Ok(data) => {
                 _songs = data[playlist_name]
@@ -29,8 +31,9 @@ impl PlaylistInfo {
 
         PlaylistInfo {
             playlist: playlist_name.to_string(),
-            songs: _songs,
+            songs: _songs.clone(),
             index: 0,
+            stateful_songs: StatefulList::with_items(_songs),
         }
     }
 }
