@@ -59,7 +59,7 @@ pub struct App {
     pub song_info: Option<song::SongInfo>,
     pub song_data: serde_json::Value,
 
-    pub playlist_info: Option<playlist::PlaylistInfo>,
+    pub playlist_info: playlist::PlaylistInfo,
     pub debugger: debug::Debug,
 
     pub controller: Controller,
@@ -90,7 +90,7 @@ impl App {
             song_info: None,
             song_data: _song_data,
 
-            playlist_info: None,
+            playlist_info: playlist::PlaylistInfo::new("None"),
             debugger: debug::Debug::new(),
 
             controller: Controller::Main,
@@ -119,7 +119,7 @@ impl App {
     }
 
     fn change_playing_song(&mut self) {
-        if self.playlist_info.is_some() {
+        if self.playlist_info.playlist != "None" {
             self.playback_playlist();
             return ();
         }
@@ -162,13 +162,13 @@ impl App {
     }
 
     fn playback_playlist(&mut self) {
-        let mut playlist_info = self.playlist_info.as_mut().unwrap();
-        if playlist_info.index >= playlist_info.songs.len() {
-            self.playlist_info = None;
+        if self.playlist_info.index >= self.playlist_info.songs.len() {
+            self.playlist_info = playlist::PlaylistInfo::new("None");
             return ();
         }
 
-        let new_song_info = SongInfo::new(playlist_info.songs[playlist_info.index].clone());
+        let new_song_info =
+            SongInfo::new(self.playlist_info.songs[self.playlist_info.index].clone());
 
         self.progress = 0;
         self.song_info = Some(new_song_info.clone());
@@ -176,8 +176,7 @@ impl App {
             action: song::Action::AddSong,
             data: song::DataType::SongInfo(new_song_info),
         });
-        playlist_info.index += 1;
-        self.playlist_info = Some(playlist_info.clone());
+        self.playlist_info.index += 1;
     }
 
     fn change_volume(&mut self, amount: i32) {

@@ -12,8 +12,8 @@ use tui::{
     Frame,
 };
 
-use crate::ui::fuzzy_finder;
 use crate::ui::terminal::App;
+use crate::{playlist, ui::fuzzy_finder};
 
 pub fn render_popup_add_to_playlist<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     fuzzy_finder::render_popup(f, app, "Add Song to PlayList");
@@ -29,8 +29,8 @@ pub fn render_modify_playlist<B: Backend>(
     left_rect: Rect,
     righ_rect: Rect,
 ) {
-    let playlist_info = app.playlist_info.as_ref().expect("No playlist selected");
-    let items: Vec<ListItem> = playlist_info
+    let items: Vec<ListItem> = app
+        .playlist_info
         .stateful_songs
         .items
         .iter()
@@ -46,7 +46,11 @@ pub fn render_modify_playlist<B: Backend>(
         .highlight_symbol("> ");
 
     f.render_widget(Clear, left_rect);
-    f.render_stateful_widget(items, left_rect, &mut app.items.state);
+    f.render_stateful_widget(
+        items,
+        left_rect,
+        &mut app.playlist_info.stateful_songs.state,
+    );
 }
 
 pub fn controller_add_to_playlist<B: Backend>(
@@ -96,27 +100,20 @@ pub fn controller_modify_playlist<B: Backend>(
 }
 
 fn unselect(app: &mut App) {
-    let playlist_info = app.playlist_info.as_mut().expect("No playlist");
-    playlist_info.stateful_songs.unselect();
-    app.playlist_info = Some(playlist_info.clone());
+    app.playlist_info.stateful_songs.unselect();
 }
 
 fn next(app: &mut App) {
-    app.debugger.print("NEXT".to_string());
-    let playlist_info = app.playlist_info.as_mut().expect("No playlist");
-    playlist_info.stateful_songs.next();
-    app.playlist_info = Some(playlist_info.clone());
+    app.playlist_info.stateful_songs.next();
 }
 
 fn previous(app: &mut App) {
-    let playlist_info = app.playlist_info.as_mut().expect("No playlist");
-    playlist_info.stateful_songs.next();
-    app.playlist_info = Some(playlist_info.clone());
+    app.playlist_info.stateful_songs.previous();
 }
 
 fn delete_song(app: &mut App) {}
 
 fn exit(app: &mut App) {
-    app.playlist_info = None;
+    app.playlist_info = playlist::PlaylistInfo::new("None");
     app.main_controller();
 }

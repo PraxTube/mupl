@@ -15,6 +15,15 @@ pub struct PlaylistInfo {
 
 impl PlaylistInfo {
     pub fn new(playlist_name: &str) -> PlaylistInfo {
+        if playlist_name == "None" {
+            return PlaylistInfo {
+                playlist: "None".to_string(),
+                songs: vec![],
+                index: 0,
+                stateful_songs: StatefulList::new(),
+            };
+        }
+
         let playlist_data = playlist_data();
         let mut _songs: Vec<String>;
         match playlist_data {
@@ -85,11 +94,11 @@ pub fn add_song_to_playlist(app: &mut App) {
 }
 
 pub fn play_playlist(app: &mut App) {
-    app.playlist_info = Some(PlaylistInfo::new(&app.finder_data.output));
+    app.playlist_info = PlaylistInfo::new(&app.finder_data.output);
     app.main_controller();
 }
 
 pub fn modify_playlist(app: &mut App) {
-    app.playlist_info = Some(PlaylistInfo::new(&app.finder_data.output));
+    app.playlist_info = PlaylistInfo::new(&app.finder_data.output);
     app.controller = terminal::Controller::ModifyPlaylist;
 }
