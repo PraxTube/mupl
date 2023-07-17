@@ -20,8 +20,11 @@ use crate::ui::utils;
 pub struct Data {
     input: String,
     pub output: String,
+    title: String,
+
     possible_matches: Vec<String>,
     stateful_matches: utils::StatefulList<String>,
+
     pub result_func: Option<fn(&mut crate::ui::terminal::App) -> ()>,
 }
 
@@ -30,8 +33,11 @@ impl Data {
         Data {
             input: String::new(),
             output: String::new(),
+            title: String::new(),
+
             possible_matches: Vec::new(),
             stateful_matches: utils::StatefulList::with_items(Vec::new()),
+
             result_func: None,
         }
     }
@@ -48,13 +54,15 @@ impl Data {
 
     pub fn reset(
         &mut self,
-        _possible_matches: Vec<String>,
-        _result_func: fn(&mut crate::ui::terminal::App) -> (),
+        title: String,
+        possible_matches: Vec<String>,
+        result_func: fn(&mut crate::ui::terminal::App) -> (),
     ) {
         self.input = String::new();
-        self.possible_matches = _possible_matches.clone();
-        self.result_func = Some(_result_func);
-        self.stateful_matches = utils::StatefulList::with_items(_possible_matches);
+        self.title = title;
+        self.possible_matches = possible_matches.clone();
+        self.result_func = Some(result_func);
+        self.stateful_matches = utils::StatefulList::with_items(possible_matches);
     }
 
     fn recalculate_matches(&mut self) {
@@ -98,7 +106,8 @@ impl Data {
     }
 }
 
-pub fn render_popup<B: Backend>(f: &mut Frame<B>, app: &mut crate::terminal::App, title: &str) {
+pub fn render_popup<B: Backend>(f: &mut Frame<B>, app: &mut crate::terminal::App) {
+    let title = app.finder_data.title.clone();
     let block = Block::default().title(title).borders(Borders::ALL);
     let area = utils::centered_rect(50, 30, f.size());
     f.render_widget(Clear, area);

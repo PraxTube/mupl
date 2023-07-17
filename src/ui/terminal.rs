@@ -32,8 +32,6 @@ use crate::ui::utils::StatefulList;
 #[derive(PartialEq)]
 pub enum Controller {
     Main,
-    AddToPlaylist,
-    PlayPlaylist,
     ModifyPlaylist,
     FuzzyFinder,
 }
@@ -42,9 +40,8 @@ impl std::fmt::Display for Controller {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Controller::Main => write!(f, "Normal"),
-            Controller::AddToPlaylist => write!(f, "AddToPlaylist"),
-            Controller::PlayPlaylist => write!(f, "PlayPlaylist"),
             Controller::ModifyPlaylist => write!(f, "Modify Playlist"),
+            Controller::FuzzyFinder => write!(f, "Fuzzy Finding"),
             _ => write!(f, ""),
         }
     }
@@ -143,21 +140,30 @@ impl App {
 
     fn add_to_playlist(&mut self) {
         if self.items.state.selected() != None {
-            self.finder_data
-                .reset(playlist::playlist_names(), playlist::add_song_to_playlist);
-            self.controller = Controller::AddToPlaylist;
+            self.finder_data.reset(
+                "Add to Playlist".to_string(),
+                playlist::playlist_names(),
+                playlist::add_song_to_playlist,
+            );
+            self.controller = Controller::FuzzyFinder;
         }
     }
 
     fn play_playlist(&mut self) {
-        self.finder_data
-            .reset(playlist::playlist_names(), playlist::play_playlist);
-        self.controller = Controller::PlayPlaylist;
+        self.finder_data.reset(
+            "Play Playlist".to_string(),
+            playlist::playlist_names(),
+            playlist::play_playlist,
+        );
+        self.controller = Controller::FuzzyFinder;
     }
 
     fn modify_playlist(&mut self) {
-        self.finder_data
-            .reset(playlist::playlist_names(), playlist::modify_playlist);
+        self.finder_data.reset(
+            "Modify Playlist".to_string(),
+            playlist::playlist_names(),
+            playlist::modify_playlist,
+        );
         self.controller = Controller::FuzzyFinder;
     }
 
@@ -260,12 +266,6 @@ fn run_app<B: Backend>(
         terminal.draw(|f| ui(f, &mut app))?;
         match app.controller {
             Controller::Main => main_controller::<B>(&mut app, tick_rate, &mut last_tick),
-            Controller::AddToPlaylist => {
-                ui::playlist::controller_add_to_playlist::<B>(&mut app, tick_rate, &mut last_tick)
-            }
-            Controller::PlayPlaylist => {
-                ui::playlist::controller_play_playlist::<B>(&mut app, tick_rate, &mut last_tick)
-            }
             Controller::ModifyPlaylist => {
                 ui::playlist::controller_modify_playlist::<B>(&mut app, tick_rate, &mut last_tick)
             }
@@ -340,14 +340,10 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         None => {}
     }
 
-    if app.controller == Controller::AddToPlaylist {
-        ui::playlist::render_popup_add_to_playlist(f, app);
-    } else if app.controller == Controller::PlayPlaylist {
-        ui::playlist::render_popup_play_playlist(f, app);
-    } else if app.controller == Controller::ModifyPlaylist {
+    if app.controller == Controller::ModifyPlaylist {
         ui::playlist::render_modify_playlist(f, app, chunks[0], right_chunks[0]);
     } else if app.controller == Controller::FuzzyFinder {
-        ui::fuzzy_finder::render_popup(f, app, "Fuzzy Find");
+        ui::fuzzy_finder::render_popup(f, app);
     }
 
     modal::render_modal(f, app, main_chunks[1]);

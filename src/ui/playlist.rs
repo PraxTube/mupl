@@ -15,14 +15,6 @@ use tui::{
 use crate::ui::terminal::App;
 use crate::{playlist, ui::fuzzy_finder};
 
-pub fn render_popup_add_to_playlist<B: Backend>(f: &mut Frame<B>, app: &mut App) {
-    fuzzy_finder::render_popup(f, app, "Add Song to PlayList");
-}
-
-pub fn render_popup_play_playlist<B: Backend>(f: &mut Frame<B>, app: &mut App) {
-    fuzzy_finder::render_popup(f, app, "Play Playlist");
-}
-
 pub fn render_modify_playlist<B: Backend>(
     f: &mut Frame<B>,
     app: &mut App,
@@ -51,22 +43,6 @@ pub fn render_modify_playlist<B: Backend>(
         left_rect,
         &mut app.playlist_info.stateful_songs.state,
     );
-}
-
-pub fn controller_add_to_playlist<B: Backend>(
-    app: &mut App,
-    tick_rate: Duration,
-    last_tick: &mut Instant,
-) -> io::Result<()> {
-    fuzzy_finder::controller::<B>(app, tick_rate, last_tick)
-}
-
-pub fn controller_play_playlist<B: Backend>(
-    app: &mut App,
-    tick_rate: Duration,
-    last_tick: &mut Instant,
-) -> io::Result<()> {
-    fuzzy_finder::controller::<B>(app, tick_rate, last_tick)
 }
 
 pub fn controller_modify_playlist<B: Backend>(
