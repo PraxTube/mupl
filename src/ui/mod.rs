@@ -1,4 +1,5 @@
 pub mod active_song_info;
+pub mod confirmation;
 pub mod debug;
 pub mod fuzzy_finder;
 pub mod modal;

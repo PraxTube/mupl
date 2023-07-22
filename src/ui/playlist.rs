@@ -1,4 +1,4 @@
-use crossterm::event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode};
+use crossterm::event::{self, Event, KeyCode};
 use std::{
     io,
     time::{Duration, Instant},
@@ -12,8 +12,8 @@ use tui::{
     Frame,
 };
 
-use crate::ui::terminal::App;
-use crate::{playlist, ui::fuzzy_finder};
+use crate::playlist;
+use crate::{data, ui::terminal::App};
 
 pub fn render_modify_playlist<B: Backend>(
     f: &mut Frame<B>,
@@ -87,9 +87,50 @@ fn previous(app: &mut App) {
     app.playlist_info.stateful_songs.previous();
 }
 
-fn delete_song(app: &mut App) {}
+fn delete_song(app: &mut App) {
+    let index = match app.playlist_info.stateful_songs.state.selected() {
+        Some(i) => i,
+        None => return,
+    };
+
+    app.playlist_info.stateful_songs.delete_item(index);
+}
 
 fn exit(app: &mut App) {
+    let data = match data::playlist_data() {
+        Ok(data) => data,
+        Err(err) => panic!("Playlist data not reachable, {}", err),
+    };
+    let previous_songs = match data[&app.playlist_info.playlist].as_array() {
+        Some(songs) => songs,
+        None => panic!("Not a valid playlist name"),
+    };
+
+    let dirty_flag = previous_songs.len() != app.playlist_info.stateful_songs.items.len();
+    if dirty_flag {
+        save_confirmation(app);
+    } else {
+        app.playlist_info = playlist::PlaylistInfo::new("None");
+        app.main_controller();
+    }
+}
+
+fn save_confirmation(app: &mut App) {
+    app.confirmation_data.reset(
+        "Apply changes to playlist?".to_string(),
+        "Confirmation".to_string(),
+        pos_exit,
+        neg_exit,
+    );
+    app.confirm();
+}
+
+pub fn pos_exit(app: &mut App) {
+    app.playlist_info = playlist::PlaylistInfo::new("None");
+    app.main_controller();
+}
+
+pub fn neg_exit(app: &mut App) {
     app.playlist_info = playlist::PlaylistInfo::new("None");
     app.main_controller();
 }

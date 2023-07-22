@@ -34,6 +34,7 @@ pub enum Controller {
     Main,
     ModifyPlaylist,
     FuzzyFinder,
+    Confirmation,
 }
 
 impl std::fmt::Display for Controller {
@@ -49,6 +50,7 @@ impl std::fmt::Display for Controller {
 
 pub struct App {
     pub finder_data: crate::ui::fuzzy_finder::Data,
+    pub confirmation_data: crate::ui::confirmation::Data,
     pub items: StatefulList<song::SongInfo>,
 
     pub progress: u32,
@@ -80,6 +82,7 @@ impl App {
         }
         App {
             finder_data: crate::ui::fuzzy_finder::Data::new(),
+            confirmation_data: crate::ui::confirmation::Data::new(),
             items: StatefulList::with_items(_items),
 
             progress: 0,
@@ -165,6 +168,10 @@ impl App {
             playlist::modify_playlist,
         );
         self.controller = Controller::FuzzyFinder;
+    }
+
+    pub fn confirm(&mut self) {
+        self.controller = Controller::Confirmation;
     }
 
     fn playback_playlist(&mut self) {
@@ -272,6 +279,9 @@ fn run_app<B: Backend>(
             Controller::FuzzyFinder => {
                 ui::fuzzy_finder::controller::<B>(&mut app, tick_rate, &mut last_tick)
             }
+            Controller::Confirmation => {
+                ui::confirmation::controller::<B>(&mut app, tick_rate, &mut last_tick)
+            }
         }?;
     }
 }
@@ -344,6 +354,8 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         ui::playlist::render_modify_playlist(f, app, chunks[0], right_chunks[0]);
     } else if app.controller == Controller::FuzzyFinder {
         ui::fuzzy_finder::render_popup(f, app);
+    } else if app.controller == Controller::Confirmation {
+        ui::confirmation::render_popup(f, app);
     }
 
     modal::render_modal(f, app, main_chunks[1]);

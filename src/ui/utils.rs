@@ -63,6 +63,14 @@ impl<T> StatefulList<T> {
     pub fn unselect(&mut self) {
         self.state.select(None);
     }
+
+    pub fn delete_item(&mut self, index: usize) {
+        if index >= self.items.len() {
+            return;
+        }
+
+        self.items.remove(index);
+    }
 }
 
 pub fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
