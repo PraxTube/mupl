@@ -6,4 +6,5 @@ pub mod modal;
 pub mod playlist;
 pub mod song;
 pub mod terminal;
+pub mod text_prompt;
 pub mod utils;

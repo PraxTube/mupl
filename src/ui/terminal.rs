@@ -35,6 +35,7 @@ pub enum Controller {
     ModifyPlaylist,
     FuzzyFinder,
     Confirmation,
+    TextPrompt,
 }
 
 impl std::fmt::Display for Controller {
@@ -51,6 +52,7 @@ impl std::fmt::Display for Controller {
 pub struct App {
     pub finder_data: crate::ui::fuzzy_finder::Data,
     pub confirmation_data: crate::ui::confirmation::Data,
+    pub text_prompt_data: crate::ui::text_prompt::Data,
     pub items: StatefulList<song::SongInfo>,
 
     pub progress: u32,
@@ -83,6 +85,7 @@ impl App {
         App {
             finder_data: crate::ui::fuzzy_finder::Data::new(),
             confirmation_data: crate::ui::confirmation::Data::new(),
+            text_prompt_data: crate::ui::text_prompt::Data::new(),
             items: StatefulList::with_items(_items),
 
             progress: 0,
@@ -282,6 +285,9 @@ fn run_app<B: Backend>(
             Controller::Confirmation => {
                 ui::confirmation::controller::<B>(&mut app, tick_rate, &mut last_tick)
             }
+            Controller::TextPrompt => {
+                ui::text_prompt::controller::<B>(&mut app, tick_rate, &mut last_tick)
+            }
         }?;
     }
 }
@@ -350,12 +356,14 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         None => {}
     }
 
-    if app.controller == Controller::ModifyPlaylist {
-        ui::playlist::render_modify_playlist(f, app, chunks[0], right_chunks[0]);
-    } else if app.controller == Controller::FuzzyFinder {
-        ui::fuzzy_finder::render_popup(f, app);
-    } else if app.controller == Controller::Confirmation {
-        ui::confirmation::render_popup(f, app);
+    match app.controller {
+        Controller::Main => {}
+        Controller::ModifyPlaylist => {
+            ui::playlist::render_modify_playlist(f, app, chunks[0], right_chunks[0])
+        }
+        Controller::FuzzyFinder => ui::fuzzy_finder::render_popup(f, app),
+        Controller::Confirmation => ui::confirmation::render_popup(f, app),
+        Controller::TextPrompt => ui::text_prompt::render_popup(f, app),
     }
 
     modal::render_modal(f, app, main_chunks[1]);
