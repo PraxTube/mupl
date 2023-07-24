@@ -123,6 +123,7 @@ fn save_confirmation(app: &mut App) {
 }
 
 pub fn pos_exit(app: &mut App) {
+    playlist::write_modified_playlist(app);
     app.playlist_info = playlist::PlaylistInfo::new("None");
     app.main_controller();
 }

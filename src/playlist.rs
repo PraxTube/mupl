@@ -1,6 +1,6 @@
 use serde_json::json;
 
-use crate::data::{self, playlist_data};
+use crate::data::{self, playlist_data, write_playlist_data};
 use crate::ui::terminal;
 use crate::ui::terminal::App;
 use crate::ui::utils::StatefulList;
@@ -86,5 +86,8 @@ pub fn modify_playlist(app: &mut App) {
 }
 
 pub fn write_modified_playlist(app: &mut App) {
-    let current_data = playlist_data();
+    let mut current_data = playlist_data();
+    current_data[&app.playlist_info.playlist] =
+        app.playlist_info.stateful_songs.items.clone().into();
+    write_playlist_data(serde_json::Value::Object(current_data));
 }
