@@ -97,10 +97,7 @@ fn delete_song(app: &mut App) {
 }
 
 fn exit(app: &mut App) {
-    let data = match data::playlist_data() {
-        Ok(data) => data,
-        Err(err) => panic!("Playlist data not reachable, {}", err),
-    };
+    let data = data::playlist_data();
     let previous_songs = match data[&app.playlist_info.playlist].as_array() {
         Some(songs) => songs,
         None => panic!("Not a valid playlist name"),

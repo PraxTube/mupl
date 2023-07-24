@@ -26,17 +26,12 @@ impl PlaylistInfo {
 
         let playlist_data = playlist_data();
         let mut _songs: Vec<String>;
-        match playlist_data {
-            Ok(data) => {
-                _songs = data[playlist_name]
-                    .as_array()
-                    .expect("the playlist data is not an array")
-                    .iter()
-                    .map(|v| v.to_string().replace("\"", ""))
-                    .collect()
-            }
-            Err(err) => panic!("can not access playlist data {}", err),
-        }
+        _songs = playlist_data[playlist_name]
+            .as_array()
+            .expect("the playlist data is not an array")
+            .iter()
+            .map(|v| v.to_string().replace("\"", ""))
+            .collect();
 
         PlaylistInfo {
             playlist: playlist_name.to_string(),
@@ -49,26 +44,13 @@ impl PlaylistInfo {
 
 pub fn playlist_names() -> Vec<String> {
     let data = playlist_data();
-    if let Err(_) = data {
-        return Vec::new();
-    }
 
-    let keys: Vec<String> = data
-        .unwrap()
-        .as_object()
-        .expect("not a valid json file")
-        .keys()
-        .cloned()
-        .collect();
+    let keys: Vec<String> = data.keys().cloned().collect();
     keys
 }
 
 pub fn add_song_to_playlist(app: &mut App) {
-    let raw_data = playlist_data();
-    if let Err(_) = raw_data {
-        panic!("Can not open playlist data");
-    }
-    let mut data = raw_data.unwrap();
+    let mut data = playlist_data();
 
     if data.get(&app.finder_data.output) == None {
         panic!("The given playlist does not exist");
@@ -85,7 +67,7 @@ pub fn add_song_to_playlist(app: &mut App) {
         None => panic!("There is no song selected"),
     }
 
-    match data::write_playlist_data(data) {
+    match data::write_playlist_data(serde_json::Value::Object(data)) {
         Ok(_) => {}
         Err(err) => panic!("There was an error when writing playlist data, {}", err),
     }
@@ -101,4 +83,8 @@ pub fn play_playlist(app: &mut App) {
 pub fn modify_playlist(app: &mut App) {
     app.playlist_info = PlaylistInfo::new(&app.finder_data.output);
     app.controller = terminal::Controller::ModifyPlaylist;
+}
+
+pub fn write_modified_playlist(app: &mut App) {
+    let current_data = playlist_data();
 }

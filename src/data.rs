@@ -53,9 +53,18 @@ pub fn song_data() -> Result<serde_json::Value, Box<dyn Error>> {
     get_data(path)
 }
 
-pub fn playlist_data() -> Result<serde_json::Value, Box<dyn Error>> {
-    let path = playlist_path()?;
-    get_data(path)
+pub fn playlist_data() -> serde_json::Map<String, serde_json::Value> {
+    let path = playlist_path();
+    match path {
+        Ok(path) => match get_data(path) {
+            Ok(data) => match data.as_object() {
+                Some(data) => return data.clone(),
+                None => panic!("Data is None, probably empty Value"),
+            },
+            Err(err) => panic!("Error while getting the data of playlist, {}", err),
+        },
+        Err(err) => panic!("Couldn not find path to playlist data, {}", err),
+    }
 }
 
 pub fn config_data() -> Result<serde_json::Value, Box<dyn Error>> {
