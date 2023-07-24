@@ -44,10 +44,20 @@ impl Data {
         self.input.pop();
     }
 
-    pub fn reset(&mut self, title: String, result_func: fn(&mut crate::ui::terminal::App) -> ()) {
+    pub fn reset(
+        &mut self,
+        title: &str,
+        message: &str,
+        result_func: fn(&mut crate::ui::terminal::App) -> (),
+    ) {
         self.input = String::new();
-        self.title = title;
+        self.title = title.to_string();
+        self.message = message.to_string();
         self.result_func = Some(result_func);
+    }
+
+    fn enter(&mut self) {
+        self.output = self.input.clone();
     }
 }
 
@@ -81,8 +91,8 @@ pub fn render_popup<B: Backend>(f: &mut Frame<B>, app: &mut crate::terminal::App
         .block(Block::default().borders(Borders::NONE));
     f.render_widget(input, chunks[2]);
     f.set_cursor(
-        chunks[0].x + app.text_prompt_data.input.width() as u16 + 2,
-        chunks[0].y,
+        chunks[2].x + app.text_prompt_data.input.width() as u16 + 2,
+        chunks[2].y,
     );
 }
 
@@ -103,10 +113,13 @@ pub fn controller<B: Backend>(
                 KeyCode::Backspace => {
                     app.text_prompt_data.pop_input();
                 }
-                KeyCode::Enter => match app.finder_data.result_func {
-                    Some(func) => func(app),
-                    None => {}
-                },
+                KeyCode::Enter => {
+                    app.text_prompt_data.enter();
+                    match app.text_prompt_data.result_func {
+                        Some(func) => func(app),
+                        None => {}
+                    }
+                }
                 KeyCode::Esc => app.main_controller(),
                 _ => {}
             }

@@ -91,3 +91,9 @@ pub fn write_modified_playlist(app: &mut App) {
         app.playlist_info.stateful_songs.items.clone().into();
     write_playlist_data(serde_json::Value::Object(current_data));
 }
+
+pub fn add_playlist(app: &mut App) {
+    let mut current_data = playlist_data();
+    current_data.insert(app.text_prompt_data.output.clone(), json!([]));
+    write_playlist_data(serde_json::Value::Object(current_data));
+}

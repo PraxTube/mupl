@@ -105,30 +105,54 @@ fn exit(app: &mut App) {
 
     let dirty_flag = previous_songs.len() != app.playlist_info.stateful_songs.items.len();
     if dirty_flag {
-        save_confirmation(app);
+        modify_playlist(app);
     } else {
-        app.playlist_info = playlist::PlaylistInfo::new("None");
-        app.main_controller();
+        neg_modify_playlist(app);
     }
 }
 
-fn save_confirmation(app: &mut App) {
+fn modify_playlist(app: &mut App) {
     app.confirmation_data.reset(
         "Apply changes to playlist?".to_string(),
         "Confirmation".to_string(),
-        pos_exit,
-        neg_exit,
+        pos_modify_playlist,
+        neg_modify_playlist,
     );
     app.confirm();
 }
 
-pub fn pos_exit(app: &mut App) {
+pub fn pos_modify_playlist(app: &mut App) {
     playlist::write_modified_playlist(app);
     app.playlist_info = playlist::PlaylistInfo::new("None");
     app.main_controller();
 }
 
-pub fn neg_exit(app: &mut App) {
+pub fn neg_modify_playlist(app: &mut App) {
     app.playlist_info = playlist::PlaylistInfo::new("None");
+    app.main_controller();
+}
+
+pub fn add_playlist(app: &mut App) {
+    let new_playlist = app.text_prompt_data.output.clone();
+    let current_data = data::playlist_data();
+    if current_data.contains_key(&new_playlist) {
+        app.confirmation_data.reset(
+            "Playlist already exists, reset it?".to_string(),
+            "Reset Playlist".to_string(),
+            pos_add_playlist,
+            neg_add_playlist,
+        );
+        app.confirm();
+    } else {
+        pos_add_playlist(app);
+    }
+}
+
+pub fn pos_add_playlist(app: &mut App) {
+    playlist::add_playlist(app);
+    app.main_controller();
+}
+
+pub fn neg_add_playlist(app: &mut App) {
     app.main_controller();
 }

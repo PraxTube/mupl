@@ -173,6 +173,16 @@ impl App {
         self.controller = Controller::FuzzyFinder;
     }
 
+    fn add_playlist(&mut self) {
+        self.text_prompt_data.reset(
+            "Add Playlist",
+            "Choose a name for the new playlist. \
+            Note that you can reset already existing playlists by writing their name here.",
+            ui::playlist::add_playlist,
+        );
+        self.controller = Controller::TextPrompt;
+    }
+
     pub fn confirm(&mut self) {
         self.controller = Controller::Confirmation;
     }
@@ -316,6 +326,7 @@ fn main_controller<B: Backend>(
                 KeyCode::Char(' ') => app.toggle_pause_song(),
                 // Change Mode
                 KeyCode::Char('m') => app.modify_playlist(),
+                KeyCode::Char('a') => app.add_playlist(),
                 // Misc
                 KeyCode::Enter => app.change_playing_song(),
                 _ => {}
