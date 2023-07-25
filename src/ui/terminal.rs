@@ -3,17 +3,17 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use ratatui::{
+    backend::{Backend, CrosstermBackend},
+    layout::{Constraint, Direction, Layout},
+    widgets::{Block, Borders},
+    Frame, Terminal,
+};
 use std::{
     error::Error,
     io,
     sync::mpsc::Sender,
     time::{Duration, Instant},
-};
-use tui::{
-    backend::{Backend, CrosstermBackend},
-    layout::{Constraint, Direction, Layout},
-    widgets::{Block, Borders},
-    Frame, Terminal,
 };
 
 use crate::data;

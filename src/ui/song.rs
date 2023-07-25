@@ -1,8 +1,8 @@
-use tui::{
+use ratatui::{
     backend::Backend,
     layout::Rect,
     style::{Color, Modifier, Style},
-    text::{Span, Spans},
+    text::{Line, Span},
     widgets::{Block, Borders, List, ListItem},
     Frame,
 };
@@ -15,7 +15,7 @@ pub fn render_song_list<B: Backend>(f: &mut Frame<B>, app: &mut App, chunk: Rect
         .items
         .iter()
         .map(|i| {
-            let song_body = Spans::from(Span::styled(&i.name, Style::default()));
+            let song_body = Line::from(Span::styled(&i.name, Style::default()));
             ListItem::new(song_body).style(Style::default())
         })
         .collect();

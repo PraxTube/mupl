@@ -1,14 +1,14 @@
 use crossterm::event::{self, Event, KeyCode};
+use ratatui::{
+    backend::Backend,
+    layout::{Constraint, Direction, Layout},
+    style::{Color, Style},
+    widgets::{Block, Borders, Clear, Paragraph},
+    Frame,
+};
 use std::{
     io,
     time::{Duration, Instant},
-};
-use tui::{
-    backend::Backend,
-    layout::{Constraint, Direction, Layout},
-    style::{Color, Modifier, Style},
-    widgets::{Block, Borders, Clear, Paragraph},
-    Frame,
 };
 
 use unicode_width::UnicodeWidthStr;

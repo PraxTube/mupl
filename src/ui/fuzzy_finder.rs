@@ -1,15 +1,15 @@
 use crossterm::event::{self, Event, KeyCode};
-use std::{
-    io,
-    time::{Duration, Instant},
-};
-use tui::{
+use ratatui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
-    text::{Span, Spans},
+    text::{Line, Span},
     widgets::{Block, Borders, Clear, List, ListItem, Paragraph},
     Frame,
+};
+use std::{
+    io,
+    time::{Duration, Instant},
 };
 
 use strsim::levenshtein;
@@ -141,7 +141,7 @@ pub fn render_popup<B: Backend>(f: &mut Frame<B>, app: &mut crate::terminal::App
         .items
         .iter()
         .map(|i| {
-            let song_body = Spans::from(Span::styled(i, Style::default()));
+            let song_body = Line::from(Span::styled(i, Style::default()));
             ListItem::new(song_body).style(Style::default())
         })
         .collect();

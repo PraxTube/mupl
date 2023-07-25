@@ -1,14 +1,15 @@
 use crossterm::event::{self, Event, KeyCode};
-use std::{
-    io,
-    time::{Duration, Instant},
-};
-use tui::{
+use ratatui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
     widgets::{Block, Borders, Clear, Paragraph},
     Frame,
+};
+use std::{
+    io,
+    rc::Rc,
+    time::{Duration, Instant},
 };
 
 use crate::ui::utils;
@@ -50,7 +51,7 @@ impl Data {
     }
 }
 
-fn calculate_sub_chunks(app: &mut crate::terminal::App, area: Rect) -> Vec<Rect> {
+fn calculate_sub_chunks(app: &mut crate::terminal::App, area: Rect) -> Rc<[Rect]> {
     let constraints = match app.confirmation_data.highlight_pos {
         true => vec![
             Constraint::Length(20),

@@ -1,4 +1,4 @@
-use tui::{backend::Backend, layout::Rect, widgets::Paragraph, Frame};
+use ratatui::{backend::Backend, layout::Rect, widgets::Paragraph, Frame};
 
 use crate::ui::terminal::App;
 

@@ -1,15 +1,15 @@
 use crossterm::event::{self, Event, KeyCode};
-use std::{
-    io,
-    time::{Duration, Instant},
-};
-use tui::{
+use ratatui::{
     backend::Backend,
     layout::Rect,
     style::{Color, Modifier, Style},
-    text::{Span, Spans},
+    text::{Line, Span},
     widgets::{Block, Borders, Clear, List, ListItem},
     Frame,
+};
+use std::{
+    io,
+    time::{Duration, Instant},
 };
 
 use crate::playlist;
@@ -27,7 +27,7 @@ pub fn render_modify_playlist<B: Backend>(
         .items
         .iter()
         .map(|song| {
-            let song_body = Spans::from(Span::styled(song, Style::default()));
+            let song_body = Line::from(Span::styled(song, Style::default()));
             ListItem::new(song_body).style(Style::default())
         })
         .collect();

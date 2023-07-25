@@ -1,4 +1,4 @@
-use tui::{
+use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     widgets::ListState,
 };
