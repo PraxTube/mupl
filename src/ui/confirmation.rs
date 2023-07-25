@@ -6,9 +6,8 @@ use std::{
 use tui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
-    text::{Span, Spans},
-    widgets::{Block, Borders, Clear, List, ListItem, Paragraph},
+    style::{Color, Style},
+    widgets::{Block, Borders, Clear, Paragraph},
     Frame,
 };
 
@@ -140,6 +139,9 @@ pub fn controller<B: Backend>(
             match key.code {
                 KeyCode::Char('h') => app.confirmation_data.highlight_pos = false,
                 KeyCode::Char('l') => app.confirmation_data.highlight_pos = true,
+                KeyCode::Tab => {
+                    app.confirmation_data.highlight_pos = !app.confirmation_data.highlight_pos
+                }
                 KeyCode::Char('q') => neg_response(app),
                 KeyCode::Enter => response(app),
                 KeyCode::Esc => app.main_controller(),

@@ -44,7 +44,8 @@ impl std::fmt::Display for Controller {
             Controller::Main => write!(f, "Normal"),
             Controller::ModifyPlaylist => write!(f, "Modify Playlist"),
             Controller::FuzzyFinder => write!(f, "Fuzzy Finding"),
-            _ => write!(f, ""),
+            Controller::Confirmation => write!(f, "Confirmation"),
+            Controller::TextPrompt => write!(f, "Text Prompt"),
         }
     }
 }
@@ -176,7 +177,7 @@ impl App {
     fn add_playlist(&mut self) {
         self.text_prompt_data.reset(
             "Add Playlist",
-            "Choose a name for the new playlist. \
+            "Choose a name for the new playlist.\n\
             Note that you can reset already existing playlists by writing their name here.",
             ui::playlist::add_playlist,
         );
