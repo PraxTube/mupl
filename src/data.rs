@@ -16,7 +16,7 @@ fn data_dir() -> Result<PathBuf, Box<dyn Error>> {
         }
     };
 
-    let data_dir = home_dir.join(".config").join("mupl");
+    let data_dir = home_dir.join(".config").join("vimp");
 
     if !data_dir.exists() {
         std::fs::create_dir_all(&data_dir)?;
