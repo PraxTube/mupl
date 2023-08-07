@@ -12,7 +12,7 @@ readme = "README.md"
 license = "MIT"
 
 keywords = ["music", "music-player", "vi", "vim", "CLI"]
-categories = ["command-line-interface", "CLI", "terminal", "music-player"]
+categories = ["command-line-interface", "gui", "multimedia::audio"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
