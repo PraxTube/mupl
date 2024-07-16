@@ -1,14 +1,7 @@
 use walkdir::WalkDir;
 
-use crate::data::config_data;
-
 fn music_dir() -> String {
-    match config_data() {
-        Ok(data) => {
-            return data["music-folder"].to_string().replace("\"", "");
-        }
-        Err(err) => panic!("Couldn't read config data {}", err),
-    }
+    "/home/rancic/Music/".to_string()
 }
 
 pub fn load_music_files() -> Vec<std::path::PathBuf> {

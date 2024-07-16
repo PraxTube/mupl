@@ -16,16 +16,13 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crate::data;
 use crate::load;
 use crate::playlist;
 use crate::song;
 use crate::song::SongInfo;
-use crate::ui;
 
 use crate::ui::active_song_info::render_active_song_info;
 use crate::ui::debug;
-use crate::ui::modal;
 use crate::ui::song::render_song_list;
 use crate::ui::utils::StatefulList;
 
@@ -34,8 +31,6 @@ pub enum Controller {
     Main,
     ModifyPlaylist,
     FuzzyFinder,
-    Confirmation,
-    TextPrompt,
 }
 
 impl std::fmt::Display for Controller {
@@ -44,22 +39,16 @@ impl std::fmt::Display for Controller {
             Controller::Main => write!(f, "Normal"),
             Controller::ModifyPlaylist => write!(f, "Modify Playlist"),
             Controller::FuzzyFinder => write!(f, "Fuzzy Finding"),
-            Controller::Confirmation => write!(f, "Confirmation"),
-            Controller::TextPrompt => write!(f, "Text Prompt"),
         }
     }
 }
 
 pub struct App {
-    pub finder_data: crate::ui::fuzzy_finder::Data,
-    pub confirmation_data: crate::ui::confirmation::Data,
-    pub text_prompt_data: crate::ui::text_prompt::Data,
     pub items: StatefulList<song::SongInfo>,
 
     pub progress: u32,
     pub volume: i32,
     pub song_info: Option<song::SongInfo>,
-    pub song_data: serde_json::Value,
 
     pub playlist_info: playlist::PlaylistInfo,
     pub debugger: debug::Debug,
@@ -72,7 +61,7 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(_song_data: serde_json::Value, _tx: Sender<song::ActionData>) -> App {
+    pub fn new(tx: Sender<song::ActionData>) -> App {
         let mut _items: Vec<song::SongInfo> = Vec::new();
         for song in &load::load_music_files() {
             _items.push(SongInfo::new(
@@ -84,21 +73,17 @@ impl App {
             ));
         }
         App {
-            finder_data: crate::ui::fuzzy_finder::Data::new(),
-            confirmation_data: crate::ui::confirmation::Data::new(),
-            text_prompt_data: crate::ui::text_prompt::Data::new(),
             items: StatefulList::with_items(_items),
 
             progress: 0,
             volume: 50,
             song_info: None,
-            song_data: _song_data,
 
             playlist_info: playlist::PlaylistInfo::new("None"),
             debugger: debug::Debug::new(),
 
             controller: Controller::Main,
-            tx: _tx,
+            tx,
 
             pause: false,
             quit: false,
@@ -125,11 +110,11 @@ impl App {
     fn change_playing_song(&mut self) {
         if self.playlist_info.playlist != "None" {
             self.playback_playlist();
-            return ();
+            return;
         }
 
-        if self.items.state.selected() == None {
-            return ();
+        if self.items.state.selected().is_none() {
+            return;
         }
 
         let new_song_info = self.items.items[self.items.state.selected().unwrap()].clone();
@@ -147,53 +132,10 @@ impl App {
             .unwrap();
     }
 
-    fn add_to_playlist(&mut self) {
-        if self.items.state.selected() != None {
-            self.finder_data.reset(
-                "Add to Playlist".to_string(),
-                playlist::playlist_names(),
-                playlist::add_song_to_playlist,
-            );
-            self.controller = Controller::FuzzyFinder;
-        }
-    }
-
-    fn play_playlist(&mut self) {
-        self.finder_data.reset(
-            "Play Playlist".to_string(),
-            playlist::playlist_names(),
-            playlist::play_playlist,
-        );
-        self.controller = Controller::FuzzyFinder;
-    }
-
-    fn modify_playlist(&mut self) {
-        self.finder_data.reset(
-            "Modify Playlist".to_string(),
-            playlist::playlist_names(),
-            playlist::modify_playlist,
-        );
-        self.controller = Controller::FuzzyFinder;
-    }
-
-    fn add_playlist(&mut self) {
-        self.text_prompt_data.reset(
-            "Add Playlist",
-            "Choose a name for the new playlist.\n\
-            Note that you can reset already existing playlists by writing their name here.",
-            ui::playlist::add_playlist,
-        );
-        self.controller = Controller::TextPrompt;
-    }
-
-    pub fn confirm(&mut self) {
-        self.controller = Controller::Confirmation;
-    }
-
     fn playback_playlist(&mut self) {
         if self.playlist_info.index >= self.playlist_info.songs.len() {
             self.playlist_info = playlist::PlaylistInfo::new("None");
-            return ();
+            return;
         }
 
         let new_song_info =
@@ -239,22 +181,20 @@ impl App {
         self.controller = Controller::Main;
     }
 
-    pub fn selected_song(&mut self) -> Option<song::SongInfo> {
-        match self.items.state.selected() {
-            Some(index) => {
-                return Some(self.items.items[index].clone());
-            }
-            None => return None,
-        }
-    }
-
     pub fn current_controller(&self) -> String {
         self.controller.to_string().clone()
     }
 }
 
 pub fn setup(tx: Sender<song::ActionData>) -> Result<(), Box<dyn Error>> {
-    let song_data = data::song_data()?;
+    tx.send(song::ActionData {
+        action: song::Action::AddSong,
+        data: song::DataType::SongInfo(SongInfo {
+            name: "Coool Song".to_string(),
+            duration: 3,
+            file: "/home/rancic/Music/LOFI/420.ogg".to_string(),
+        }),
+    })?;
 
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -263,8 +203,8 @@ pub fn setup(tx: Sender<song::ActionData>) -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     let tick_rate = Duration::from_secs(1);
-    let app = App::new(song_data, tx);
-    let res = run_app(&mut terminal, app, tick_rate);
+    let app = App::new(tx);
+    run_app(&mut terminal, app, tick_rate).unwrap();
 
     disable_raw_mode()?;
     execute!(
@@ -273,10 +213,6 @@ pub fn setup(tx: Sender<song::ActionData>) -> Result<(), Box<dyn Error>> {
         DisableMouseCapture
     )?;
     terminal.show_cursor()?;
-
-    if let Err(err) = res {
-        println!("{:?}", err)
-    }
 
     Ok(())
 }
@@ -293,21 +229,7 @@ fn run_app<B: Backend>(
         }
 
         terminal.draw(|f| ui(f, &mut app))?;
-        match app.controller {
-            Controller::Main => main_controller(&mut app, tick_rate, &mut last_tick),
-            Controller::ModifyPlaylist => {
-                ui::playlist::controller_modify_playlist(&mut app, tick_rate, &mut last_tick)
-            }
-            Controller::FuzzyFinder => {
-                ui::fuzzy_finder::controller(&mut app, tick_rate, &mut last_tick)
-            }
-            Controller::Confirmation => {
-                ui::confirmation::controller(&mut app, tick_rate, &mut last_tick)
-            }
-            Controller::TextPrompt => {
-                ui::text_prompt::controller(&mut app, tick_rate, &mut last_tick)
-            }
-        }?;
+        main_controller(&mut app, tick_rate, &mut last_tick);
     }
 }
 
@@ -323,15 +245,10 @@ fn main_controller(app: &mut App, tick_rate: Duration, last_tick: &mut Instant) 
                 KeyCode::Char('l') => app.items.unselect(),
                 KeyCode::Char('j') => app.items.next(),
                 KeyCode::Char('k') => app.items.previous(),
-                KeyCode::Char('p') => app.add_to_playlist(),
-                KeyCode::Char('P') => app.play_playlist(),
                 // Directly on Song
                 KeyCode::Char('w') => app.change_volume(5),
                 KeyCode::Char('b') => app.change_volume(-5),
                 KeyCode::Char(' ') => app.toggle_pause_song(),
-                // Change Mode
-                KeyCode::Char('m') => app.modify_playlist(),
-                KeyCode::Char('a') => app.add_playlist(),
                 // Misc
                 KeyCode::Enter => app.change_playing_song(),
                 _ => {}
@@ -371,16 +288,4 @@ fn ui(f: &mut Frame, app: &mut App) {
         Some(info) => render_active_song_info(f, app, chunks[1], info.clone()),
         None => {}
     }
-
-    match app.controller {
-        Controller::Main => {}
-        Controller::ModifyPlaylist => {
-            ui::playlist::render_modify_playlist(f, app, chunks[0], right_chunks[0])
-        }
-        Controller::FuzzyFinder => ui::fuzzy_finder::render_popup(f, app),
-        Controller::Confirmation => ui::confirmation::render_popup(f, app),
-        Controller::TextPrompt => ui::text_prompt::render_popup(f, app),
-    }
-
-    modal::render_modal(f, app, main_chunks[1]);
 }

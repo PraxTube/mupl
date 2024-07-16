@@ -63,11 +63,8 @@ pub fn render_active_song_info(f: &mut Frame, app: &mut App, chunk: Rect, song_i
         )
         .split(chunk);
 
-    let paragraph_info = Paragraph::new(format!(
-        "\nName: {}\nFile: {}",
-        app.song_data[&song_info.name]["name"], app.song_data[&song_info.name]["artist"][0]
-    ))
-    .alignment(Alignment::Left);
+    let paragraph_info =
+        Paragraph::new(format!("\nNAME OF FILE HERE, TODO",)).alignment(Alignment::Left);
     f.render_widget(paragraph_info, playing_song_chunks[0]);
 
     f.render_widget(

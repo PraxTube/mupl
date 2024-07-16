@@ -3,8 +3,6 @@ use std::thread;
 
 use rodio::{OutputStream, Sink, Source};
 
-use crate::data;
-
 pub enum DataType {
     Int(i32),
     SongInfo(SongInfo),
@@ -30,20 +28,13 @@ pub struct SongInfo {
 }
 
 impl SongInfo {
-    pub fn new(song_filestem: String) -> SongInfo {
-        let song_file = data::song_filestem_to_path(&song_filestem);
-        if song_file.is_none() {
-            panic!("No song with the name {} found", song_filestem);
-        }
-        let song_file = song_file.unwrap();
-
+    pub fn new(song_file: String) -> SongInfo {
         let file = std::fs::File::open(&song_file).unwrap();
         let source = rodio::Decoder::new(file).unwrap();
-        let file_stem = song_file.file_stem().unwrap().to_str().unwrap().to_string();
         SongInfo {
-            name: file_stem,
+            name: "TODO".to_string(),
             duration: source.total_duration().unwrap().as_secs_f32() as u32,
-            file: song_file.to_str().unwrap().to_string(),
+            file: song_file,
         }
     }
 }
@@ -99,9 +90,8 @@ fn play_song(rx: Receiver<ActionData>) {
 }
 
 pub fn stream_song(rx: Receiver<ActionData>) -> thread::JoinHandle<()> {
-    let streaming_thread = thread::Builder::new()
+    thread::Builder::new()
         .name("song-streaming".into())
         .spawn(move || play_song(rx))
-        .unwrap();
-    streaming_thread
+        .unwrap()
 }

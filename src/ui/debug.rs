@@ -37,7 +37,7 @@ pub fn render_active_song_info(f: &mut Frame, app: &mut App, chunk: Rect) {
     let mut debug_string = String::new();
 
     for msg in &app.debugger.messages {
-        debug_string += &msg;
+        debug_string += msg;
         debug_string += "\n";
     }
     let paragraph_info = Paragraph::new(debug_string);
