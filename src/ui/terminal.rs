@@ -12,62 +12,48 @@ use ratatui::{
 use std::{
     error::Error,
     io,
+    path::PathBuf,
     sync::mpsc::Sender,
     time::{Duration, Instant},
 };
 
-use crate::load;
-use crate::playlist;
+use crate::load::load_music_files;
 use crate::song;
 use crate::song::SongInfo;
 
 use crate::ui::active_song_info::render_active_song_info;
 use crate::ui::debug;
 use crate::ui::song::render_song_list;
-use crate::ui::utils::StatefulList;
 
 pub struct App {
-    pub items: StatefulList<song::SongInfo>,
-
     pub progress: u32,
     pub volume: i32,
+    pub songs: Vec<SongInfo>,
     pub song_info: Option<song::SongInfo>,
-
-    pub playlist_info: playlist::PlaylistInfo,
     pub debugger: debug::Debug,
 
-    tx: Sender<song::ActionData>,
-
+    current_song_index: usize,
     pause: bool,
     quit: bool,
+    tx: Sender<song::ActionData>,
 }
 
 impl App {
-    pub fn new(tx: Sender<song::ActionData>) -> App {
-        let mut _items: Vec<song::SongInfo> = Vec::new();
-        for song in &load::load_music_files() {
-            _items.push(SongInfo::new(
-                song.file_stem()
-                    .expect("Not a valid music file")
-                    .to_str()
-                    .expect("Can not convert to song file to str")
-                    .to_string(),
-            ));
-        }
+    pub fn new(tx: Sender<song::ActionData>, path: &PathBuf) -> App {
         App {
-            items: StatefulList::with_items(_items),
-
             progress: 0,
             volume: 50,
             song_info: None,
-
-            playlist_info: playlist::PlaylistInfo::new("None"),
+            songs: load_music_files(path)
+                .iter()
+                .map(|f| SongInfo::new(f.to_path_buf()))
+                .collect(),
             debugger: debug::Debug::new(),
 
-            tx,
-
+            current_song_index: 0,
             pause: false,
             quit: false,
+            tx,
         }
     }
 
@@ -75,54 +61,30 @@ impl App {
         if self.pause {
             return;
         }
+        if self.current_song_index >= self.songs.len() {
+            return;
+        }
 
-        match &self.song_info {
-            Some(info) => {
-                self.progress += 1;
-                if self.progress > info.duration {
-                    self.progress = 0;
-                    self.change_playing_song();
-                }
-            }
-            None => {}
+        self.progress += 1;
+        if self.progress > self.songs[self.current_song_index].duration {
+            self.progress = 0;
+            self.try_play_next_song();
         }
     }
 
-    fn change_playing_song(&mut self) {
-        if self.playlist_info.playlist != "None" {
-            self.playback_playlist();
+    fn try_play_current_song(&mut self) {
+        self.debugger.print(&format!("{}", self.current_song_index));
+        if self.current_song_index >= self.songs.len() {
             return;
         }
-
-        if self.items.state.selected().is_none() {
-            return;
-        }
-
-        let new_song_info = self.items.items[self.items.state.selected().unwrap()].clone();
-
-        self.progress = 0;
-        self.song_info = Some(new_song_info.clone());
         if self.pause {
             self.toggle_pause_song();
         }
-        self.tx
-            .send(song::ActionData {
-                action: song::Action::AddSong,
-                data: song::DataType::SongInfo(new_song_info),
-            })
-            .unwrap();
-    }
-
-    fn playback_playlist(&mut self) {
-        if self.playlist_info.index >= self.playlist_info.songs.len() {
-            self.playlist_info = playlist::PlaylistInfo::new("None");
-            return;
-        }
-
-        let new_song_info =
-            SongInfo::new(self.playlist_info.songs[self.playlist_info.index].clone());
-
         self.progress = 0;
+
+        self.debugger.print("plaing");
+
+        let new_song_info = self.songs[self.current_song_index].clone();
         self.song_info = Some(new_song_info.clone());
         self.tx
             .send(song::ActionData {
@@ -130,7 +92,6 @@ impl App {
                 data: song::DataType::SongInfo(new_song_info),
             })
             .unwrap();
-        self.playlist_info.index += 1;
     }
 
     fn change_volume(&mut self, amount: i32) {
@@ -141,6 +102,18 @@ impl App {
                 data: song::DataType::Int(self.volume),
             })
             .unwrap();
+    }
+
+    fn try_play_next_song(&mut self) {
+        self.current_song_index = (self.current_song_index + 1).min(self.songs.len() - 1);
+        self.try_play_current_song();
+    }
+
+    fn try_play_previous_song(&mut self) {
+        if self.current_song_index != 0 {
+            self.current_song_index -= 1;
+        }
+        self.try_play_current_song();
     }
 
     pub fn toggle_pause_song(&mut self) {
@@ -159,15 +132,12 @@ impl App {
     }
 }
 
-pub fn setup(tx: Sender<song::ActionData>) -> Result<(), Box<dyn Error>> {
-    tx.send(song::ActionData {
-        action: song::Action::AddSong,
-        data: song::DataType::SongInfo(SongInfo {
-            name: "Coool Song".to_string(),
-            duration: 3,
-            file: "/home/anto/music/rumbling.wav".to_string(),
-        }),
-    })?;
+pub fn setup(tx: Sender<song::ActionData>, path: PathBuf) -> Result<(), Box<dyn Error>> {
+    let app = App::new(tx, &path);
+    if app.songs.is_empty() {
+        println!("There are no songs in the given dir, {:?}. Exiting.", path);
+        return Ok(());
+    }
 
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -176,7 +146,6 @@ pub fn setup(tx: Sender<song::ActionData>) -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     let tick_rate = Duration::from_secs(1);
-    let app = App::new(tx);
     run_app(&mut terminal, app, tick_rate).unwrap();
 
     disable_raw_mode()?;
@@ -214,16 +183,11 @@ fn main_controller(app: &mut App, tick_rate: Duration, last_tick: &mut Instant) 
         if let Event::Key(key) = event::read()? {
             match key.code {
                 KeyCode::Char('q') => app.quit = true,
-                KeyCode::Char('h') => app.items.unselect(),
-                KeyCode::Char('l') => app.items.unselect(),
-                KeyCode::Char('j') => app.items.next(),
-                KeyCode::Char('k') => app.items.previous(),
-                // Directly on Song
+                KeyCode::Char('j') => app.try_play_next_song(),
+                KeyCode::Char('k') => app.try_play_previous_song(),
                 KeyCode::Char('w') => app.change_volume(5),
                 KeyCode::Char('b') => app.change_volume(-5),
                 KeyCode::Char(' ') => app.toggle_pause_song(),
-                // Misc
-                KeyCode::Enter => app.change_playing_song(),
                 _ => {}
             }
         }

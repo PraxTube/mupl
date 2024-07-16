@@ -1,16 +1,18 @@
+use std::path::PathBuf;
+
 use walkdir::WalkDir;
 
-fn music_dir() -> String {
-    "/home/rancic/Music/".to_string()
-}
+const MUSIC_FILE_EXTENSIONS: [&str; 3] = ["wav", "ogg", "mp3"];
 
-pub fn load_music_files() -> Vec<std::path::PathBuf> {
+pub fn load_music_files(path: &PathBuf) -> Vec<std::path::PathBuf> {
     let mut music_files = Vec::new();
-
-    // Recursively iterate through the directory and its subfolders
-    for entry in WalkDir::new(music_dir()).into_iter().filter_map(|e| e.ok()) {
+    for entry in WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
         let path = entry.path();
-        if path.is_file() && path.extension().map_or(false, |ext| ext == "wav") {
+        if path.is_file()
+            && path.extension().map_or(false, |ext| {
+                MUSIC_FILE_EXTENSIONS.contains(&ext.to_str().unwrap_or_default())
+            })
+        {
             music_files.push(path.to_path_buf());
         }
     }

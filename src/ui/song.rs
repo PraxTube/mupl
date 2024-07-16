@@ -2,7 +2,7 @@ use ratatui::{
     layout::Rect,
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, List, ListItem},
+    widgets::{Block, Borders, List, ListItem, ListState},
     Frame,
 };
 
@@ -10,8 +10,7 @@ use crate::ui::terminal::App;
 
 pub fn render_song_list(f: &mut Frame, app: &mut App, chunk: Rect) {
     let items: Vec<ListItem> = app
-        .items
-        .items
+        .songs
         .iter()
         .map(|i| {
             let song_body = Line::from(Span::styled(&i.name, Style::default()));
@@ -26,5 +25,7 @@ pub fn render_song_list(f: &mut Frame, app: &mut App, chunk: Rect) {
         .highlight_symbol("> ");
 
     // We can now render the item list
-    f.render_stateful_widget(items, chunk, &mut app.items.state);
+    let mut state = ListState::default();
+    state.select_next();
+    f.render_stateful_widget(items, chunk, &mut state);
 }

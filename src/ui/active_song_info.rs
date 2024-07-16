@@ -24,7 +24,6 @@ fn progress_gauge(app: &mut App, song_info: SongInfo) -> LineGauge {
         .filled_style(
             Style::default()
                 .fg(Color::Yellow)
-                .bg(Color::Black)
                 .add_modifier(Modifier::BOLD),
         )
         .ratio(ratio)
@@ -40,7 +39,6 @@ fn volume_gauge(app: &mut App) -> LineGauge {
         .filled_style(
             Style::default()
                 .fg(Color::Yellow)
-                .bg(Color::Black)
                 .add_modifier(Modifier::BOLD),
         )
         .ratio(ratio)

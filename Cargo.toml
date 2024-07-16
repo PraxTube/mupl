@@ -17,12 +17,14 @@ categories = ["command-line-interface", "gui", "multimedia::audio"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rodio = "0.19.0"
-clap = { version = "4.5.9", features = ["derive"] }
-crossterm = "0.27.0"
-ratatui = "0.27.0"
 walkdir = "2.5.0"
 serde_json = "1.0.120"
 unicode-width = "0.1.13"
 strsim = "0.11.1"
-anyhow = "1.0.86"
+
+crossterm = "0.27.0"
+ratatui = "0.27.0"
+
+clap = { version = "4.5.9", features = ["derive"] }
+rodio = "0.19.0"
+lofty = "0.20.1"

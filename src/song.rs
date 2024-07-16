@@ -1,7 +1,10 @@
+use std::path::PathBuf;
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 
-use rodio::{OutputStream, Sink, Source};
+use lofty::prelude::*;
+use lofty::probe::Probe;
+use rodio::{OutputStream, Sink};
 
 pub enum DataType {
     Int(i32),
@@ -28,13 +31,17 @@ pub struct SongInfo {
 }
 
 impl SongInfo {
-    pub fn new(song_file: String) -> SongInfo {
-        let file = std::fs::File::open(&song_file).unwrap();
-        let source = rodio::Decoder::new(file).unwrap();
+    pub fn new(song_file: PathBuf) -> SongInfo {
+        let tagged_file = Probe::open(&song_file)
+            .expect("ERROR: Bad path provided!")
+            .read()
+            .expect("ERROR: Failed to read file!");
+        let duration = tagged_file.properties().duration().as_secs() as u32;
+
         SongInfo {
-            name: "TODO".to_string(),
-            duration: source.total_duration().unwrap().as_secs_f32() as u32,
-            file: song_file,
+            name: song_file.file_name().unwrap().to_str().unwrap().to_owned(),
+            duration,
+            file: song_file.to_str().unwrap().to_string(),
         }
     }
 }
@@ -43,7 +50,6 @@ fn add_song_to_sink(song_info: SongInfo, sink: &Sink) {
     sink.stop();
     let file = std::fs::File::open(song_info.file).unwrap();
     let source = rodio::Decoder::new(file).unwrap();
-
     sink.append(source);
 }
 
