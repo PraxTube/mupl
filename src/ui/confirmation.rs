@@ -1,6 +1,5 @@
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::{
-    backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
     widgets::{Block, Borders, Clear, Paragraph},
@@ -97,7 +96,7 @@ fn pos_paragraph(app: &mut crate::ui::terminal::App) -> Paragraph {
     }
 }
 
-pub fn render_popup<B: Backend>(f: &mut Frame<B>, app: &mut crate::ui::terminal::App) {
+pub fn render_popup(f: &mut Frame, app: &mut crate::ui::terminal::App) {
     let title = app.confirmation_data.title.clone();
     let block = Block::default().title(title).borders(Borders::ALL);
     let area = utils::centered_rect(40, 20, f.size());
@@ -127,7 +126,7 @@ pub fn render_popup<B: Backend>(f: &mut Frame<B>, app: &mut crate::ui::terminal:
     f.render_widget(pos_paragraph(app), sub_chunks[3]);
 }
 
-pub fn controller<B: Backend>(
+pub fn controller(
     app: &mut crate::terminal::App,
     tick_rate: Duration,
     last_tick: &mut Instant,

@@ -1,6 +1,5 @@
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::{
-    backend::Backend,
     layout::{Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
     text::{Line, Span},
@@ -106,7 +105,7 @@ impl Data {
     }
 }
 
-pub fn render_popup<B: Backend>(f: &mut Frame<B>, app: &mut crate::terminal::App) {
+pub fn render_popup(f: &mut Frame, app: &mut crate::terminal::App) {
     let title = app.finder_data.title.clone();
     let block = Block::default().title(title).borders(Borders::ALL);
     let area = utils::centered_rect(50, 30, f.size());
@@ -157,7 +156,7 @@ pub fn render_popup<B: Backend>(f: &mut Frame<B>, app: &mut crate::terminal::App
     );
 }
 
-pub fn controller<B: Backend>(
+pub fn controller(
     app: &mut crate::terminal::App,
     tick_rate: Duration,
     last_tick: &mut Instant,

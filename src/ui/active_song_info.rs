@@ -1,5 +1,4 @@
 use ratatui::{
-    backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     widgets::{Block, Borders, LineGauge, Paragraph},
@@ -22,7 +21,7 @@ fn progress_gauge(app: &mut App, song_info: SongInfo) -> LineGauge {
         .min(1.0);
     let gauge = LineGauge::default()
         .block(Block::default().borders(Borders::ALL))
-        .gauge_style(
+        .filled_style(
             Style::default()
                 .fg(Color::Yellow)
                 .bg(Color::Black)
@@ -38,7 +37,7 @@ fn volume_gauge(app: &mut App) -> LineGauge {
     let label = format!("Volume - ({}%)", app.volume);
     let gauge = LineGauge::default()
         .block(Block::default().borders(Borders::ALL))
-        .gauge_style(
+        .filled_style(
             Style::default()
                 .fg(Color::Yellow)
                 .bg(Color::Black)
@@ -49,12 +48,7 @@ fn volume_gauge(app: &mut App) -> LineGauge {
     gauge
 }
 
-pub fn render_active_song_info<B: Backend>(
-    f: &mut Frame<B>,
-    app: &mut App,
-    chunk: Rect,
-    song_info: SongInfo,
-) {
+pub fn render_active_song_info(f: &mut Frame, app: &mut App, chunk: Rect, song_info: SongInfo) {
     let playing_song_chunks = Layout::default()
         .direction(Direction::Vertical)
         .margin(1)

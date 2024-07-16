@@ -1,5 +1,4 @@
 use ratatui::{
-    backend::Backend,
     layout::Rect,
     style::{Color, Modifier, Style},
     text::{Line, Span},
@@ -9,7 +8,7 @@ use ratatui::{
 
 use crate::ui::terminal::App;
 
-pub fn render_song_list<B: Backend>(f: &mut Frame<B>, app: &mut App, chunk: Rect) {
+pub fn render_song_list(f: &mut Frame, app: &mut App, chunk: Rect) {
     let items: Vec<ListItem> = app
         .items
         .items

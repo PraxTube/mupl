@@ -1,6 +1,5 @@
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::{
-    backend::Backend,
     layout::Rect,
     style::{Color, Modifier, Style},
     text::{Line, Span},
@@ -15,12 +14,7 @@ use std::{
 use crate::playlist;
 use crate::{data, ui::terminal::App};
 
-pub fn render_modify_playlist<B: Backend>(
-    f: &mut Frame<B>,
-    app: &mut App,
-    left_rect: Rect,
-    righ_rect: Rect,
-) {
+pub fn render_modify_playlist(f: &mut Frame, app: &mut App, left_rect: Rect, _righ_rect: Rect) {
     let items: Vec<ListItem> = app
         .playlist_info
         .stateful_songs
@@ -45,7 +39,7 @@ pub fn render_modify_playlist<B: Backend>(
     );
 }
 
-pub fn controller_modify_playlist<B: Backend>(
+pub fn controller_modify_playlist(
     app: &mut App,
     tick_rate: Duration,
     last_tick: &mut Instant,

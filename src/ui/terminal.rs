@@ -139,10 +139,12 @@ impl App {
         if self.pause {
             self.toggle_pause_song();
         }
-        self.tx.send(song::ActionData {
-            action: song::Action::AddSong,
-            data: song::DataType::SongInfo(new_song_info),
-        });
+        self.tx
+            .send(song::ActionData {
+                action: song::Action::AddSong,
+                data: song::DataType::SongInfo(new_song_info),
+            })
+            .unwrap();
     }
 
     fn add_to_playlist(&mut self) {
@@ -199,19 +201,23 @@ impl App {
 
         self.progress = 0;
         self.song_info = Some(new_song_info.clone());
-        self.tx.send(song::ActionData {
-            action: song::Action::AddSong,
-            data: song::DataType::SongInfo(new_song_info),
-        });
+        self.tx
+            .send(song::ActionData {
+                action: song::Action::AddSong,
+                data: song::DataType::SongInfo(new_song_info),
+            })
+            .unwrap();
         self.playlist_info.index += 1;
     }
 
     fn change_volume(&mut self, amount: i32) {
         self.volume = (self.volume + amount).max(0).min(100);
-        self.tx.send(song::ActionData {
-            action: song::Action::Volume,
-            data: song::DataType::Int(self.volume),
-        });
+        self.tx
+            .send(song::ActionData {
+                action: song::Action::Volume,
+                data: song::DataType::Int(self.volume),
+            })
+            .unwrap();
     }
 
     pub fn toggle_pause_song(&mut self) {
@@ -221,10 +227,12 @@ impl App {
 
         self.pause = !self.pause;
 
-        self.tx.send(song::ActionData {
-            action: song::Action::TogglePause,
-            data: song::DataType::Null,
-        });
+        self.tx
+            .send(song::ActionData {
+                action: song::Action::TogglePause,
+                data: song::DataType::Null,
+            })
+            .unwrap();
     }
 
     pub fn main_controller(&mut self) {
@@ -286,28 +294,24 @@ fn run_app<B: Backend>(
 
         terminal.draw(|f| ui(f, &mut app))?;
         match app.controller {
-            Controller::Main => main_controller::<B>(&mut app, tick_rate, &mut last_tick),
+            Controller::Main => main_controller(&mut app, tick_rate, &mut last_tick),
             Controller::ModifyPlaylist => {
-                ui::playlist::controller_modify_playlist::<B>(&mut app, tick_rate, &mut last_tick)
+                ui::playlist::controller_modify_playlist(&mut app, tick_rate, &mut last_tick)
             }
             Controller::FuzzyFinder => {
-                ui::fuzzy_finder::controller::<B>(&mut app, tick_rate, &mut last_tick)
+                ui::fuzzy_finder::controller(&mut app, tick_rate, &mut last_tick)
             }
             Controller::Confirmation => {
-                ui::confirmation::controller::<B>(&mut app, tick_rate, &mut last_tick)
+                ui::confirmation::controller(&mut app, tick_rate, &mut last_tick)
             }
             Controller::TextPrompt => {
-                ui::text_prompt::controller::<B>(&mut app, tick_rate, &mut last_tick)
+                ui::text_prompt::controller(&mut app, tick_rate, &mut last_tick)
             }
         }?;
     }
 }
 
-fn main_controller<B: Backend>(
-    app: &mut App,
-    tick_rate: Duration,
-    last_tick: &mut Instant,
-) -> io::Result<()> {
+fn main_controller(app: &mut App, tick_rate: Duration, last_tick: &mut Instant) -> io::Result<()> {
     let timeout = tick_rate
         .checked_sub(last_tick.elapsed())
         .unwrap_or_else(|| Duration::from_secs(0));
@@ -341,7 +345,7 @@ fn main_controller<B: Backend>(
     Ok(())
 }
 
-fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+fn ui(f: &mut Frame, app: &mut App) {
     let main_chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Min(1), Constraint::Length(1)])

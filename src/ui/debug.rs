@@ -1,5 +1,4 @@
 use ratatui::{
-    backend::Backend,
     layout::{Constraint, Layout, Rect},
     widgets::{Block, Borders, Paragraph},
     Frame,
@@ -27,7 +26,7 @@ impl Debug {
     }
 }
 
-pub fn render_active_song_info<B: Backend>(f: &mut Frame<B>, app: &mut App, chunk: Rect) {
+pub fn render_active_song_info(f: &mut Frame, app: &mut App, chunk: Rect) {
     let block = Block::default().title("Debug").borders(Borders::ALL);
     f.render_widget(block, chunk);
 
