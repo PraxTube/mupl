@@ -18,6 +18,7 @@ impl Debug {
         }
     }
 
+    #[allow(dead_code)]
     pub fn print(&mut self, message: &str) {
         self.messages.push_back(message.to_string());
         if self.messages.len() > 10 {

@@ -26,23 +26,6 @@ use crate::ui::debug;
 use crate::ui::song::render_song_list;
 use crate::ui::utils::StatefulList;
 
-#[derive(PartialEq)]
-pub enum Controller {
-    Main,
-    ModifyPlaylist,
-    FuzzyFinder,
-}
-
-impl std::fmt::Display for Controller {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Controller::Main => write!(f, "Normal"),
-            Controller::ModifyPlaylist => write!(f, "Modify Playlist"),
-            Controller::FuzzyFinder => write!(f, "Fuzzy Finding"),
-        }
-    }
-}
-
 pub struct App {
     pub items: StatefulList<song::SongInfo>,
 
@@ -53,7 +36,6 @@ pub struct App {
     pub playlist_info: playlist::PlaylistInfo,
     pub debugger: debug::Debug,
 
-    pub controller: Controller,
     tx: Sender<song::ActionData>,
 
     pause: bool,
@@ -82,7 +64,6 @@ impl App {
             playlist_info: playlist::PlaylistInfo::new("None"),
             debugger: debug::Debug::new(),
 
-            controller: Controller::Main,
             tx,
 
             pause: false,
@@ -176,14 +157,6 @@ impl App {
             })
             .unwrap();
     }
-
-    pub fn main_controller(&mut self) {
-        self.controller = Controller::Main;
-    }
-
-    pub fn current_controller(&self) -> String {
-        self.controller.to_string().clone()
-    }
 }
 
 pub fn setup(tx: Sender<song::ActionData>) -> Result<(), Box<dyn Error>> {
@@ -192,7 +165,7 @@ pub fn setup(tx: Sender<song::ActionData>) -> Result<(), Box<dyn Error>> {
         data: song::DataType::SongInfo(SongInfo {
             name: "Coool Song".to_string(),
             duration: 3,
-            file: "/home/rancic/Music/LOFI/420.ogg".to_string(),
+            file: "/home/anto/music/rumbling.wav".to_string(),
         }),
     })?;
 
@@ -229,7 +202,7 @@ fn run_app<B: Backend>(
         }
 
         terminal.draw(|f| ui(f, &mut app))?;
-        main_controller(&mut app, tick_rate, &mut last_tick);
+        main_controller(&mut app, tick_rate, &mut last_tick).unwrap();
     }
 }
 

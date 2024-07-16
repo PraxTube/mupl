@@ -1,4 +1,4 @@
-use std::sync::mpsc::Receiver;
+use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 
 use rodio::{OutputStream, Sink, Source};
@@ -8,13 +8,13 @@ pub enum DataType {
     SongInfo(SongInfo),
     Null,
 }
-
 pub enum Action {
     TogglePause,
     Volume,
     AddSong,
 }
 
+pub struct SetupAudio;
 pub struct ActionData {
     pub action: Action,
     pub data: DataType,
@@ -77,8 +77,9 @@ fn match_action(action_data: ActionData, sink: &Sink) {
     }
 }
 
-fn play_song(rx: Receiver<ActionData>) {
+fn play_song(tx: Sender<SetupAudio>, rx: Receiver<ActionData>) {
     let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+    tx.send(SetupAudio).unwrap();
     let sink = Sink::try_new(&stream_handle).unwrap();
 
     loop {
@@ -89,9 +90,9 @@ fn play_song(rx: Receiver<ActionData>) {
     }
 }
 
-pub fn stream_song(rx: Receiver<ActionData>) -> thread::JoinHandle<()> {
+pub fn stream_song(tx: Sender<SetupAudio>, rx: Receiver<ActionData>) -> thread::JoinHandle<()> {
     thread::Builder::new()
         .name("song-streaming".into())
-        .spawn(move || play_song(rx))
+        .spawn(move || play_song(tx, rx))
         .unwrap()
 }
