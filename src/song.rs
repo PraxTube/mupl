@@ -22,17 +22,25 @@ pub struct SongInfo {
 }
 
 impl SongInfo {
-    pub fn new(song_file: PathBuf) -> SongInfo {
+    pub fn new(song_file: PathBuf) -> Self {
         let tagged_file = Probe::open(&song_file)
             .expect("ERROR: Bad path provided!")
             .read()
             .expect("ERROR: Failed to read file!");
         let duration = tagged_file.properties().duration().as_secs() as u32;
 
-        SongInfo {
+        Self {
             name: song_file.file_name().unwrap().to_str().unwrap().to_owned(),
             duration,
             file: song_file.to_str().unwrap().to_string(),
+        }
+    }
+
+    pub fn defect() -> Self {
+        Self {
+            name: "NO SONG SELECTED".to_string(),
+            duration: 100,
+            file: "FILE HERE".to_string(),
         }
     }
 }

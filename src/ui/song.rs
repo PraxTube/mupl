@@ -51,7 +51,7 @@ pub fn render_active_song_info(f: &mut Frame, app: &mut App, chunk: Rect, song_i
         .margin(1)
         .constraints(
             [
-                Constraint::Length(4),
+                Constraint::Length(3),
                 Constraint::Length(3),
                 Constraint::Length(3),
                 Constraint::Min(1),
@@ -90,6 +90,6 @@ pub fn render_song_list(f: &mut Frame, app: &mut App, chunk: Rect) {
 
     // We can now render the item list
     let mut state = ListState::default();
-    state.select_next();
+    state.select(Some(app.get_current_song_index()));
     f.render_stateful_widget(items, chunk, &mut state);
 }

@@ -31,7 +31,7 @@ pub struct App {
     pub debugger: Debugger,
 
     current_song_index: usize,
-    pause: bool,
+    paused: bool,
     quit: bool,
     tx: Sender<SongAction>,
 }
@@ -50,14 +50,14 @@ impl App {
             debugger: Debugger::new(),
 
             current_song_index: 0,
-            pause: false,
+            paused: false,
             quit: false,
             tx,
         }
     }
 
     pub fn on_tick(&mut self) {
-        if self.pause {
+        if self.paused {
             return;
         }
         if self.current_song_index >= self.songs.len() {
@@ -79,15 +79,11 @@ impl App {
     }
 
     fn try_play_current_song(&mut self) {
-        self.debugger.print(&format!("{}", self.current_song_index));
         let song_info = match self.try_get_current_song_info() {
             Some(r) => r,
             None => return,
         };
 
-        if self.pause {
-            self.toggle_pause_song();
-        }
         self.progress = 0;
         self.tx.send(SongAction::AddSong(song_info)).unwrap();
     }
@@ -110,8 +106,12 @@ impl App {
     }
 
     pub fn toggle_pause_song(&mut self) {
-        self.pause = !self.pause;
+        self.paused = !self.paused;
         self.tx.send(SongAction::TogglePause).unwrap();
+    }
+
+    pub fn get_current_song_index(&self) -> usize {
+        self.current_song_index.min(self.songs.len() - 1)
     }
 }
 
@@ -181,33 +181,24 @@ fn controller(app: &mut App, tick_rate: Duration, last_tick: &mut Instant) -> io
 }
 
 fn ui(f: &mut Frame, app: &mut App) {
-    let main_chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Min(1), Constraint::Length(1)])
-        .split(f.size());
-
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
-        .split(main_chunks[0]);
+        .split(f.size());
     let right_chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Percentage(65), Constraint::Percentage(35)].as_ref())
+        .constraints([Constraint::Percentage(65), Constraint::Min(1)].as_ref())
         .split(chunks[1]);
-
-    render_song_list(f, app, chunks[0]);
 
     let block = Block::default().title("Playing Song").borders(Borders::ALL);
     f.render_widget(block, right_chunks[0]);
     render_debug_panel(f, app, right_chunks[1]);
+    render_song_list(f, app, chunks[0]);
     render_active_song_info(
         f,
         app,
         chunks[1],
-        app.try_get_current_song_info().unwrap_or(SongInfo {
-            name: "NO SONG SELECTED".to_string(),
-            duration: 100,
-            file: "FILE HERE".to_string(),
-        }),
+        app.try_get_current_song_info()
+            .unwrap_or(SongInfo::defect()),
     );
 }
