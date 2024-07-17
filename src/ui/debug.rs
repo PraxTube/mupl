@@ -7,13 +7,13 @@ use ratatui::{
 use crate::ui::terminal::App;
 use std::collections::VecDeque;
 
-pub struct Debug {
+pub struct Debugger {
     pub messages: VecDeque<String>,
 }
 
-impl Debug {
-    pub fn new() -> Debug {
-        Debug {
+impl Debugger {
+    pub fn new() -> Self {
+        Self {
             messages: VecDeque::new(),
         }
     }
@@ -27,7 +27,7 @@ impl Debug {
     }
 }
 
-pub fn render_active_song_info(f: &mut Frame, app: &mut App, chunk: Rect) {
+pub fn render_debug_panel(f: &mut Frame, app: &mut App, chunk: Rect) {
     let block = Block::default().title("Debug").borders(Borders::ALL);
     f.render_widget(block, chunk);
 

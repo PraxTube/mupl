@@ -6,22 +6,13 @@ use lofty::prelude::*;
 use lofty::probe::Probe;
 use rodio::{OutputStream, Sink};
 
-pub enum DataType {
-    Int(i32),
-    SongInfo(SongInfo),
-    Null,
-}
-pub enum Action {
+pub enum SongAction {
+    AddSong(SongInfo),
+    Volume(i32),
     TogglePause,
-    Volume,
-    AddSong,
 }
 
 pub struct SetupAudio;
-pub struct ActionData {
-    pub action: Action,
-    pub data: DataType,
-}
 
 #[derive(Clone)]
 pub struct SongInfo {
@@ -65,25 +56,15 @@ fn change_volume(volume: i32, sink: &Sink) {
     sink.set_volume(volume as f32 * 0.01);
 }
 
-fn match_action(action_data: ActionData, sink: &Sink) {
-    match action_data.action {
-        Action::AddSong => {
-            if let DataType::SongInfo(data) = action_data.data {
-                add_song_to_sink(data, sink);
-            }
-        }
-        Action::TogglePause => {
-            toggle_pause(sink);
-        }
-        Action::Volume => {
-            if let DataType::Int(volume) = action_data.data {
-                change_volume(volume, sink)
-            }
-        }
+fn match_action(action: SongAction, sink: &Sink) {
+    match action {
+        SongAction::AddSong(song_info) => add_song_to_sink(song_info, sink),
+        SongAction::Volume(volume) => change_volume(volume, sink),
+        SongAction::TogglePause => toggle_pause(sink),
     }
 }
 
-fn play_song(tx: Sender<SetupAudio>, rx: Receiver<ActionData>) {
+fn play_song(tx: Sender<SetupAudio>, rx: Receiver<SongAction>) {
     let (_stream, stream_handle) = OutputStream::try_default().unwrap();
     tx.send(SetupAudio).unwrap();
     let sink = Sink::try_new(&stream_handle).unwrap();
@@ -96,7 +77,7 @@ fn play_song(tx: Sender<SetupAudio>, rx: Receiver<ActionData>) {
     }
 }
 
-pub fn stream_song(tx: Sender<SetupAudio>, rx: Receiver<ActionData>) -> thread::JoinHandle<()> {
+pub fn stream_song(tx: Sender<SetupAudio>, rx: Receiver<SongAction>) -> thread::JoinHandle<()> {
     thread::Builder::new()
         .name("song-streaming".into())
         .spawn(move || play_song(tx, rx))

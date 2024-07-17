@@ -17,29 +17,28 @@ use std::{
     time::{Duration, Instant},
 };
 
+use super::{
+    debug::{render_debug_panel, Debugger},
+    song::{render_active_song_info, render_song_list},
+};
 use crate::load::load_music_files;
-use crate::song;
-use crate::song::SongInfo;
-
-use crate::ui::active_song_info::render_active_song_info;
-use crate::ui::debug;
-use crate::ui::song::render_song_list;
+use crate::song::{SongAction, SongInfo};
 
 pub struct App {
     pub progress: u32,
     pub volume: i32,
     pub songs: Vec<SongInfo>,
-    pub song_info: Option<song::SongInfo>,
-    pub debugger: debug::Debug,
+    pub song_info: Option<SongInfo>,
+    pub debugger: Debugger,
 
     current_song_index: usize,
     pause: bool,
     quit: bool,
-    tx: Sender<song::ActionData>,
+    tx: Sender<SongAction>,
 }
 
 impl App {
-    pub fn new(tx: Sender<song::ActionData>, path: &PathBuf) -> App {
+    pub fn new(tx: Sender<SongAction>, path: &PathBuf) -> App {
         App {
             progress: 0,
             volume: 50,
@@ -48,7 +47,7 @@ impl App {
                 .iter()
                 .map(|f| SongInfo::new(f.to_path_buf()))
                 .collect(),
-            debugger: debug::Debug::new(),
+            debugger: Debugger::new(),
 
             current_song_index: 0,
             pause: false,
@@ -82,26 +81,14 @@ impl App {
         }
         self.progress = 0;
 
-        self.debugger.print("plaing");
-
         let new_song_info = self.songs[self.current_song_index].clone();
         self.song_info = Some(new_song_info.clone());
-        self.tx
-            .send(song::ActionData {
-                action: song::Action::AddSong,
-                data: song::DataType::SongInfo(new_song_info),
-            })
-            .unwrap();
+        self.tx.send(SongAction::AddSong(new_song_info)).unwrap();
     }
 
     fn change_volume(&mut self, amount: i32) {
         self.volume = (self.volume + amount).max(0).min(100);
-        self.tx
-            .send(song::ActionData {
-                action: song::Action::Volume,
-                data: song::DataType::Int(self.volume),
-            })
-            .unwrap();
+        self.tx.send(SongAction::Volume(self.volume)).unwrap();
     }
 
     fn try_play_next_song(&mut self) {
@@ -123,16 +110,11 @@ impl App {
 
         self.pause = !self.pause;
 
-        self.tx
-            .send(song::ActionData {
-                action: song::Action::TogglePause,
-                data: song::DataType::Null,
-            })
-            .unwrap();
+        self.tx.send(SongAction::TogglePause).unwrap();
     }
 }
 
-pub fn setup(tx: Sender<song::ActionData>, path: PathBuf) -> Result<(), Box<dyn Error>> {
+pub fn setup(tx: Sender<SongAction>, path: PathBuf) -> Result<(), Box<dyn Error>> {
     let app = App::new(tx, &path);
     if app.songs.is_empty() {
         println!("There are no songs in the given dir, {:?}. Exiting.", path);
@@ -171,11 +153,11 @@ fn run_app<B: Backend>(
         }
 
         terminal.draw(|f| ui(f, &mut app))?;
-        main_controller(&mut app, tick_rate, &mut last_tick).unwrap();
+        controller(&mut app, tick_rate, &mut last_tick).unwrap();
     }
 }
 
-fn main_controller(app: &mut App, tick_rate: Duration, last_tick: &mut Instant) -> io::Result<()> {
+fn controller(app: &mut App, tick_rate: Duration, last_tick: &mut Instant) -> io::Result<()> {
     let timeout = tick_rate
         .checked_sub(last_tick.elapsed())
         .unwrap_or_else(|| Duration::from_secs(0));
@@ -218,8 +200,7 @@ fn ui(f: &mut Frame, app: &mut App) {
 
     let block = Block::default().title("Playing Song").borders(Borders::ALL);
     f.render_widget(block, right_chunks[0]);
-
-    debug::render_active_song_info(f, app, right_chunks[1]);
+    render_debug_panel(f, app, right_chunks[1]);
 
     match &app.song_info {
         Some(info) => render_active_song_info(f, app, chunks[1], info.clone()),

@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::mpsc::{self};
 
-use song::{stream_song, ActionData, SetupAudio};
+use song::{stream_song, SetupAudio, SongAction};
 use ui::terminal;
 
 /// Simple program to greet a person
@@ -30,7 +30,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let path = PathBuf::from_str(&args.path).unwrap();
     assert!(path.is_dir(), "Given path is not a dir, {:?}", path);
 
-    let (tx, rx) = mpsc::channel::<ActionData>();
+    let (tx, rx) = mpsc::channel::<SongAction>();
     let (tx_setup_audio, rx_setup_audio) = mpsc::channel::<SetupAudio>();
     let _streaming_thread = stream_song(tx_setup_audio, rx);
 
