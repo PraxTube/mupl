@@ -3,14 +3,12 @@ mod song;
 mod ui;
 mod utils;
 
+use std::{error::Error, path::PathBuf, str::FromStr, sync::mpsc::channel};
+
 use clap::Parser;
-use std::error::Error;
-use std::path::PathBuf;
-use std::str::FromStr;
-use std::sync::mpsc::{self};
 
 use song::{stream_song, SetupAudio, SongAction};
-use ui::terminal;
+use ui::terminal::setup_terminal;
 
 /// Simple program to greet a person
 #[derive(Parser, Debug)]
@@ -30,8 +28,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let path = PathBuf::from_str(&args.path).unwrap();
     assert!(path.is_dir(), "Given path is not a dir, {:?}", path);
 
-    let (tx, rx) = mpsc::channel::<SongAction>();
-    let (tx_setup_audio, rx_setup_audio) = mpsc::channel::<SetupAudio>();
+    let (tx, rx) = channel::<SongAction>();
+    let (tx_setup_audio, rx_setup_audio) = channel::<SetupAudio>();
     let _streaming_thread = stream_song(tx_setup_audio, rx);
 
     if let Err(err) = rx_setup_audio.recv() {
@@ -39,5 +37,5 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Err(Box::new(err));
     };
 
-    terminal::setup(tx, path)
+    setup_terminal(tx, path, args.shuffle)
 }

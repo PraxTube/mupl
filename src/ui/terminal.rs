@@ -1,20 +1,22 @@
-use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
-    execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-};
-use ratatui::{
-    backend::{Backend, CrosstermBackend},
-    layout::{Constraint, Direction, Layout},
-    widgets::{Block, Borders},
-    Frame, Terminal,
-};
 use std::{
     error::Error,
     io,
     path::PathBuf,
     sync::mpsc::Sender,
     time::{Duration, Instant},
+};
+
+use crossterm::{
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
+    execute,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+};
+use rand::{seq::SliceRandom, thread_rng};
+use ratatui::{
+    backend::{Backend, CrosstermBackend},
+    layout::{Constraint, Direction, Layout},
+    widgets::{Block, Borders},
+    Frame, Terminal,
 };
 
 use super::{
@@ -115,10 +117,17 @@ impl App {
     }
 }
 
-pub fn setup(tx: Sender<SongAction>, path: PathBuf) -> Result<(), Box<dyn Error>> {
+pub fn setup_terminal(
+    tx: Sender<SongAction>,
+    path: PathBuf,
+    shuffle_songs: bool,
+) -> Result<(), Box<dyn Error>> {
     let mut app = App::new(tx, &path);
     if app.songs.is_empty() {
         panic!("There are no songs in the given dir, {:?}. Exiting.", path);
+    }
+    if shuffle_songs {
+        app.songs.shuffle(&mut thread_rng());
     }
     app.try_play_current_song();
 
