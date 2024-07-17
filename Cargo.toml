@@ -1,6 +1,6 @@
 [package]
 name = "vimp"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["PraxTube"]
 description = "vim based music player (vimp) in the terminal."
