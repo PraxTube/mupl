@@ -69,11 +69,8 @@ fn play_song(tx: Sender<SetupAudio>, rx: Receiver<SongAction>) {
     tx.send(SetupAudio).unwrap();
     let sink = Sink::try_new(&stream_handle).unwrap();
 
-    loop {
-        match rx.recv() {
-            Ok(action_data) => match_action(action_data, &sink),
-            Err(_) => break,
-        };
+    while let Ok(action_data) = rx.recv() {
+        match_action(action_data, &sink);
     }
 }
 

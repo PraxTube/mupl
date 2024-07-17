@@ -17,9 +17,7 @@ fn progress_gauge(app: &mut App, song_info: SongInfo) -> LineGauge {
         format_time(song_info.duration),
         app.progress as f64 / song_info.duration as f64 * 100.0
     );
-    let ratio: f64 = (app.progress as f64 / song_info.duration as f64)
-        .max(0.0)
-        .min(1.0);
+    let ratio: f64 = (app.progress as f64 / song_info.duration as f64).clamp(0.0, 1.0);
     let gauge = LineGauge::default()
         .block(Block::default().borders(Borders::ALL))
         .filled_style(
@@ -63,7 +61,7 @@ pub fn render_active_song_info(f: &mut Frame, app: &mut App, chunk: Rect, song_i
         .split(chunk);
 
     let paragraph_info =
-        Paragraph::new(format!("\nNAME OF FILE HERE, TODO",)).alignment(Alignment::Left);
+        Paragraph::new(format!("\nFile: {}", song_info.name)).alignment(Alignment::Left);
     f.render_widget(paragraph_info, playing_song_chunks[0]);
 
     f.render_widget(

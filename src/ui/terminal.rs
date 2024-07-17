@@ -28,7 +28,6 @@ pub struct App {
     pub progress: u32,
     pub volume: i32,
     pub songs: Vec<SongInfo>,
-    pub song_info: Option<SongInfo>,
     pub debugger: Debugger,
 
     current_song_index: usize,
@@ -39,10 +38,11 @@ pub struct App {
 
 impl App {
     pub fn new(tx: Sender<SongAction>, path: &PathBuf) -> App {
+        let volume = 50;
+        tx.send(SongAction::Volume(volume)).unwrap();
         App {
             progress: 0,
-            volume: 50,
-            song_info: None,
+            volume,
             songs: load_music_files(path)
                 .iter()
                 .map(|f| SongInfo::new(f.to_path_buf()))
@@ -71,23 +71,29 @@ impl App {
         }
     }
 
+    fn try_get_current_song_info(&self) -> Option<SongInfo> {
+        if self.current_song_index >= self.songs.len() {
+            return None;
+        }
+        Some(self.songs[self.current_song_index].clone())
+    }
+
     fn try_play_current_song(&mut self) {
         self.debugger.print(&format!("{}", self.current_song_index));
-        if self.current_song_index >= self.songs.len() {
-            return;
-        }
+        let song_info = match self.try_get_current_song_info() {
+            Some(r) => r,
+            None => return,
+        };
+
         if self.pause {
             self.toggle_pause_song();
         }
         self.progress = 0;
-
-        let new_song_info = self.songs[self.current_song_index].clone();
-        self.song_info = Some(new_song_info.clone());
-        self.tx.send(SongAction::AddSong(new_song_info)).unwrap();
+        self.tx.send(SongAction::AddSong(song_info)).unwrap();
     }
 
     fn change_volume(&mut self, amount: i32) {
-        self.volume = (self.volume + amount).max(0).min(100);
+        self.volume = (self.volume + amount).clamp(0, 100);
         self.tx.send(SongAction::Volume(self.volume)).unwrap();
     }
 
@@ -104,22 +110,17 @@ impl App {
     }
 
     pub fn toggle_pause_song(&mut self) {
-        if self.song_info.is_none() {
-            return;
-        }
-
         self.pause = !self.pause;
-
         self.tx.send(SongAction::TogglePause).unwrap();
     }
 }
 
 pub fn setup(tx: Sender<SongAction>, path: PathBuf) -> Result<(), Box<dyn Error>> {
-    let app = App::new(tx, &path);
+    let mut app = App::new(tx, &path);
     if app.songs.is_empty() {
-        println!("There are no songs in the given dir, {:?}. Exiting.", path);
-        return Ok(());
+        panic!("There are no songs in the given dir, {:?}. Exiting.", path);
     }
+    app.try_play_current_song();
 
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -137,7 +138,6 @@ pub fn setup(tx: Sender<SongAction>, path: PathBuf) -> Result<(), Box<dyn Error>
         DisableMouseCapture
     )?;
     terminal.show_cursor()?;
-
     Ok(())
 }
 
@@ -151,7 +151,6 @@ fn run_app<B: Backend>(
         if app.quit {
             return Ok(());
         }
-
         terminal.draw(|f| ui(f, &mut app))?;
         controller(&mut app, tick_rate, &mut last_tick).unwrap();
     }
@@ -201,9 +200,14 @@ fn ui(f: &mut Frame, app: &mut App) {
     let block = Block::default().title("Playing Song").borders(Borders::ALL);
     f.render_widget(block, right_chunks[0]);
     render_debug_panel(f, app, right_chunks[1]);
-
-    match &app.song_info {
-        Some(info) => render_active_song_info(f, app, chunks[1], info.clone()),
-        None => {}
-    }
+    render_active_song_info(
+        f,
+        app,
+        chunks[1],
+        app.try_get_current_song_info().unwrap_or(SongInfo {
+            name: "NO SONG SELECTED".to_string(),
+            duration: 100,
+            file: "FILE HERE".to_string(),
+        }),
+    );
 }
